@@ -1,4 +1,13 @@
 services:
+  sensors-poller:
+    build: ./source/sensors
+    environment:
+      - SENSORS_ENDPOINT=http://oci-container:8080/api/sensors
+    networks:
+      - backend
+    depends_on:
+      - oci-container
+
   oci-container:
     image: mars-iot-simulator:multiarch_v1
     networks:
