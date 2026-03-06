@@ -1,0 +1,9 @@
+services:
+  oci-container:
+    image: mars-iot-simulator:multiarch_v1
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
