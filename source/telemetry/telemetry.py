@@ -1,13 +1,18 @@
 import os
 import websocket
 import json
+import threading
+import time
 
 from pydantic import BaseModel
 from typing import List, Literal
 from datetime import datetime
 
-ENDPOINT = os.getenv('TELEMETRY_ENDPOINT', 'http://host.docker.internal:8080/api/telemetry/ws')  # noqa: E501
-POLLING_RATE = 5
+
+# websocket.enableTrace(True)
+
+ENDPOINT = os.getenv('TELEMETRY_ENDPOINT', 'ws://host.docker.internal:8080/api/telemetry/ws')  # noqa: E501
+POLLING_RATE = 3
 
 TOPICS = [
     ('solar_array', 'power'),
@@ -44,7 +49,7 @@ class Properties(BaseModel):
 class EnvironmentResponse(BaseModel):
     topic: str
     event_time: datetime
-    source: List[Properties]
+    source: Properties
     measurements: List[Measurement]
     status: Literal['ok', 'warning']
 
@@ -63,12 +68,12 @@ class AirlockResponse(BaseModel):
     event_time: datetime
     airlock_id: str
     cycles_per_hour: float
-    last_state: Literal['idle', 'pressurizing', 'depressurizing']
+    last_state: Literal['IDLE', 'PRESSURIZING', 'DEPRESSURIZING']
 
 
 class TelemetrySubscriber:
     def __init__(self, topic, base_url, on_message):
-        self.topic = topic,
+        self.topic = topic
         self.url = f'{base_url}?topic=mars/telemetry/{topic}'
         print(self.url)
         # self.url = f'{base_url}?topic={topic}'
@@ -79,10 +84,10 @@ class TelemetrySubscriber:
             on_close=self.on_close,
         )
 
-    def on_error(ws, error):
+    def on_error(self, ws, error):
         print(f'error: {error}')
 
-    def on_close(ws, close_status_code, close_message):
+    def on_close(self, ws, close_status_code, close_message):
         print(f'connection closed ({close_message}, {close_status_code}), retrying in 5s...')  # noqa: E501
 
     def run(self):
@@ -90,23 +95,27 @@ class TelemetrySubscriber:
 
 
 def power_on_message(ws, message):
-    power_response = PowerResponse(**message)
-    print(power_response)
+    json_response = json.loads(message)
+    power_response = PowerResponse(**json_response)
+    print(power_response, flush=True)
 
 
 def environment_on_message(ws, message):
-    environment_response = EnvironmentResponse(**message)
-    print(environment_response)
+    json_response = json.loads(message)
+    environment_response = EnvironmentResponse(**json_response)
+    print(environment_response, flush=True)
 
 
 def thermal_loop_on_message(ws, message):
-    thermal_loop_response = ThermalLoopResponse(**message)
-    print(thermal_loop_response)
+    json_response = json.loads(message)
+    thermal_loop_response = ThermalLoopResponse(**json_response)
+    print(thermal_loop_response, flush=True)
 
 
 def airlock_on_message(ws, message):
-    airlock_response = AirlockResponse(**message)
-    print(airlock_response)
+    json_response = json.loads(message)
+    airlock_response = AirlockResponse(**json_response)
+    print(airlock_response, flush=True)
 
 
 def _callback_from_type(type):
@@ -121,16 +130,22 @@ def _callback_from_type(type):
 
 
 def main():
-    subscribers = []
     for topic, type in TOPICS:
-        subscribers.append(TelemetrySubscriber(
+        subscriber = TelemetrySubscriber(
             topic,
             ENDPOINT,
             _callback_from_type(type)
-        ))
+        )
 
-    for subscriber in subscribers:
-        subscriber.run()
+        thread = threading.Thread(target=subscriber.run, daemon=True)
+        thread.start()
+        print(f'Started background thread for topic {topic}...')
+
+    try:
+        while True:
+            time.sleep(POLLING_RATE)
+    except KeyboardInterrupt:
+        print('Stopping all listeners...')
 
 
 if __name__ == '__main__':
