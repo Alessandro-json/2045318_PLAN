@@ -7,6 +7,14 @@ services:
       - backend
     depends_on:
       - oci-container
+  telemetry-poller:
+    build: ./source/telemetry
+    environment:
+      - TELEMETRY_ENDPOINT=ws://oci-container:8080/api/telemetry/ws
+    networks:
+      - backend
+    depends_on:
+      - oci-container
 
   oci-container:
     image: mars-iot-simulator:multiarch_v1
