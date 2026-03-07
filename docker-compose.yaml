@@ -40,6 +40,7 @@ services:
       - PYTHONUNBUFFERED=1
       - RABBIT_HOST=rabbitmq
       - UNORMALIZED_DATA_EXCHANGE=unormalized_data
+      - NORMALIZED_DATA_EXCHANGE=normalized_data
     networks:
       - backend
     depends_on:
@@ -57,6 +58,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - RABBIT_HOST=rabbitmq
+      - NORMALIZED_DATA_EXCHANGE=normalized_data
     networks:
       - backend
     depends_on:

@@ -12,7 +12,8 @@ from typing import Literal
 
 
 RABBIT_HOST = os.getenv('RABBIT_HOST', 'localhost')
-EXCHANGE_NAME = os.getenv('UNORMALIZED_DATA_EXCHANGE', 'unormalized_data')
+UNORMALIZED_EXCHANGE = os.getenv('UNORMALIZED_DATA_EXCHANGE', 'unormalized_data')  # noqa: E501
+NORMALIZED_EXCHANGE = os.getenv('NORMALIZED_DATA_EXCHANGE', 'normalized_data')
 
 
 MODEL_MAP = {
@@ -210,15 +211,24 @@ def _on_message(channel, method, properties, body):
             return
 
         normalized = _normalize_data(model(**data))
-        if len(normalized) >= 1:
-            print(normalized)
+        # if len(normalized) >= 1:
+        #     print(normalized)
 
-        # TODO: push to backend exchange with RabbitMQ
+        for event in normalized:
+            _publish_to_queue(channel, routing_key, event)
 
     except json.JSONDecodeError:
         print('error: failed to decode JSON')
     except ValidationError as e:
         print(f'error: failed to validate {schema_type}: {e}')
+
+
+def _publish_to_queue(channel, routing_key, data):
+    channel.basic_publish(
+        exchange=NORMALIZED_EXCHANGE,
+        routing_key=routing_key,
+        body=data.model_dump_json()
+    )
 
 
 def _setup_rabbitmq():
@@ -230,7 +240,12 @@ def _setup_rabbitmq():
 
             channel = connection.channel()
             channel.exchange_declare(
-                exchange=EXCHANGE_NAME,
+                exchange=UNORMALIZED_EXCHANGE,
+                exchange_type='topic',
+            )
+
+            channel.exchange_declare(
+                exchange=NORMALIZED_EXCHANGE,
                 exchange_type='topic',
             )
 
@@ -238,7 +253,7 @@ def _setup_rabbitmq():
             queue_name = result.method.queue
 
             channel.queue_bind(
-                exchange=EXCHANGE_NAME,
+                exchange=UNORMALIZED_EXCHANGE,
                 queue=queue_name,
                 routing_key='data.#',
             )
