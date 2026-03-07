@@ -1,41 +1,32 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react'
+import { useNormalizedData } from './hooks/NormalizedDataHook'
 
 function App() {
-    const [count, setCount] = useState(0)
-
-    const socket = new WebSocket(`ws://${window.location.host}/ws/dashboard`)
-    socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log(data);
-    }
+    const { latest, history } = useNormalizedData();
 
     return (
-        <>
-            <div>
-                <a href="https://vite.dev" target="_blank">
-                    <img src={viteLogo} className="logo" alt="Vite logo" />
-                </a>
-                <a href="https://react.dev" target="_blank">
-                    <img src={reactLogo} className="logo react" alt="React logo" />
-                </a>
+        <div className="dashboard">
+            <h1>Mission Control</h1>
+
+            <div className="grid">
+                {/* Iterate through the 'latest' map to show all sensors */}
+                {Object.values(latest).map((data) => (
+                    <div key={`${data.id}-${data.metric}`} className={`card ${data.status}`}>
+                        <h3>{data.source} - {data.metric}</h3>
+                        <p className="value">
+                            {data.value} <span className="unit">{data.unit}</span>
+                        </p>
+                        <span className="status-badge">{data.status}</span>
+                    </div>
+                ))}
             </div>
-            <h1>Vite + React</h1>
-            <div className="card">
-                <button onClick={() => setCount((count) => count + 1)}>
-                    count is {count}
-                </button>
-                <p>
-                    Edit <code>src/App.jsx</code> and save to test HMR
-                </p>
-            </div>
-            <p className="read-the-docs">
-                Click on the Vite and React logos to learn more
-            </p>
-        </>
-    )
+
+            {/* Example: If you have no data yet */}
+            {Object.keys(latest).length === 0 && (
+                <p>Connecting to telemetry stream...</p>
+            )}
+        </div>
+    );
 }
 
 export default App
