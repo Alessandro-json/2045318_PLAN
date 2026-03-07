@@ -1,20 +1,74 @@
 services:
   sensors-poller:
-    build: ./source/sensors
+    build:
+      context: ./source/
+      dockerfile: ./sensors/Dockerfile
     environment:
       - SENSORS_ENDPOINT=http://oci-container:8080/api/sensors
+      - RABBIT_HOST=rabbitmq
+      - UNORMALIZED_DATA_EXCHANGE=unormalized_data
     networks:
       - backend
     depends_on:
-      - oci-container
+      oci-container:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
   telemetry-poller:
-    build: ./source/telemetry
+    build:
+      context: ./source/
+      dockerfile: ./telemetry/Dockerfile
     environment:
+      - PYTHONUNBUFFERED=1
       - TELEMETRY_ENDPOINT=ws://oci-container:8080/api/telemetry/ws
+      - RABBIT_HOST=rabbitmq
+      - UNORMALIZED_DATA_EXCHANGE=unormalized_data
     networks:
       - backend
     depends_on:
-      - oci-container
+      oci-container:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  normalizer:
+    build:
+      context: ./source/
+      dockerfile: ./normalizer/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+      - UNORMALIZED_DATA_EXCHANGE=unormalized_data
+    networks:
+      - backend
+    depends_on:
+      sensors-poller:
+        condition: service_started
+      telemetry-poller:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq_server
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      # AMQP protocol port (for your Python scripts)
+      - "5672:5672"
+      # Management UI (for your browser)
+      - "15672:15672"
+    networks:
+      - backend
+    volumes:
+      # Persists your queues/data even if the container is deleted
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
 
   oci-container:
     image: mars-iot-simulator:multiarch_v1
@@ -24,3 +78,6 @@ services:
 networks:
   backend:
     driver: bridge
+
+volumes:
+  rabbitmq_data:

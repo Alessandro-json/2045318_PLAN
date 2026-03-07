@@ -3,16 +3,21 @@ import websocket
 import json
 import threading
 import time
+import pika
 
 from pydantic import BaseModel
 from typing import List, Literal
 from datetime import datetime
-
+from functools import partial
+from models.models import PowerResponse, EnvironmentResponse, ThermalLoopResponse, AirlockResponse  # noqa: E501
 
 # websocket.enableTrace(True)
 
 ENDPOINT = os.getenv('TELEMETRY_ENDPOINT', 'ws://host.docker.internal:8080/api/telemetry/ws')  # noqa: E501
 POLLING_RATE = 3
+
+RABBIT_HOST = os.getenv('RABBIT_HOST', 'localhost')
+EXCHANGE_NAME = os.getenv('UNORMALIZED_DATA_EXCHANGE', 'unormalized_data')
 
 TOPICS = [
     ('solar_array', 'power'),
@@ -25,64 +30,12 @@ TOPICS = [
 ]
 
 
-class Measurement(BaseModel):
-    metric: str
-    value: float
-    unit: str
-
-
-class PowerResponse(BaseModel):
-    topic: str
-    event_time: datetime
-    subsystem: str
-    power_kw: float
-    voltage_v: float
-    current_a: float
-    cumulative_kwh: float
-
-
-class Properties(BaseModel):
-    system: str
-    segment: str
-
-
-class EnvironmentResponse(BaseModel):
-    topic: str
-    event_time: datetime
-    source: Properties
-    measurements: List[Measurement]
-    status: Literal['ok', 'warning']
-
-
-class ThermalLoopResponse(BaseModel):
-    topic: str
-    event_time: datetime
-    loop: str
-    temperature_c: float
-    flow_l_min: float
-    status: Literal['ok', 'warning']
-
-
-class AirlockResponse(BaseModel):
-    topic: str
-    event_time: datetime
-    airlock_id: str
-    cycles_per_hour: float
-    last_state: Literal['IDLE', 'PRESSURIZING', 'DEPRESSURIZING']
-
-
 class TelemetrySubscriber:
     def __init__(self, topic, base_url, on_message):
+        # self.connection = connection
         self.topic = topic
         self.url = f'{base_url}?topic=mars/telemetry/{topic}'
-        print(self.url)
-        # self.url = f'{base_url}?topic={topic}'
-        self.ws = websocket.WebSocketApp(
-            self.url,
-            on_message=on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-        )
+        self.on_message = on_message
 
     def on_error(self, ws, error):
         print(f'error: {error}')
@@ -91,31 +44,80 @@ class TelemetrySubscriber:
         print(f'connection closed ({close_message}, {close_status_code}), retrying in 5s...')  # noqa: E501
 
     def run(self):
-        self.ws.run_forever(reconnect=5)
+        while True:
+            try:
+                params = pika.ConnectionParameters(RABBIT_HOST, heartbeat=600)
+                connection = pika.BlockingConnection(params)
+                channel = connection.channel()
+
+                channel.exchange_declare(
+                    exchange=EXCHANGE_NAME,
+                    exchange_type='topic',
+                )
+
+                wrapped_callback = partial(
+                    self.on_message,
+                    channel=channel
+                )
+
+                self.ws = websocket.WebSocketApp(
+                    self.url,
+                    on_message=wrapped_callback,
+                    on_error=self.on_error,
+                    on_close=self.on_close,
+                )
+                self.ws.run_forever(reconnect=5)
+            except Exception as e:
+                print(f"Thread for {self.topic} failed to connect: {e}. Retrying...", flush=True)  # noqa: E501
+                time.sleep(5)
 
 
-def power_on_message(ws, message):
+def power_on_message(ws, message, channel):
     json_response = json.loads(message)
     power_response = PowerResponse(**json_response)
-    print(power_response, flush=True)
+
+    _publish_to_queue(
+        channel,
+        'power',
+        power_response.subsystem,
+        power_response,
+    )
 
 
-def environment_on_message(ws, message):
+def environment_on_message(ws, message, channel):
     json_response = json.loads(message)
     environment_response = EnvironmentResponse(**json_response)
-    print(environment_response, flush=True)
+
+    _publish_to_queue(
+        channel,
+        'environment',
+        environment_response.source.system,
+        environment_response,
+    )
 
 
-def thermal_loop_on_message(ws, message):
+def thermal_loop_on_message(ws, message, channel):
     json_response = json.loads(message)
     thermal_loop_response = ThermalLoopResponse(**json_response)
-    print(thermal_loop_response, flush=True)
+
+    _publish_to_queue(
+        channel,
+        'thermal_loop',
+        thermal_loop_response.loop,
+        thermal_loop_response,
+    )
 
 
-def airlock_on_message(ws, message):
+def airlock_on_message(ws, message, channel):
     json_response = json.loads(message)
     airlock_response = AirlockResponse(**json_response)
-    print(airlock_response, flush=True)
+
+    _publish_to_queue(
+        channel,
+        'airlock',
+        airlock_response.airlock_id,
+        airlock_response,
+    )
 
 
 def _callback_from_type(type):
@@ -129,12 +131,37 @@ def _callback_from_type(type):
         return airlock_on_message
 
 
+def _setup_rabbitmq():
+    parameters = pika.ConnectionParameters(host=RABBIT_HOST)
+
+    for attempt in range(1, 11):
+        try:
+            return pika.BlockingConnection(parameters)
+        except pika.exceptions.AMQPConnectionError as e:
+            print(f'error: failed to connect to rabbitmq: {e}. Retrying in 5s...')  # noqa: E501
+            time.sleep(5)
+
+    raise SystemExit('fatal error: failed to connect to rabbitmq...')
+
+
+def _publish_to_queue(channel, schema_type, sensor_id, data):
+    routing_key = f"telemetry.{schema_type}.{sensor_id}"
+    channel.basic_publish(
+        exchange=EXCHANGE_NAME,
+        routing_key=routing_key,
+        body=data.model_dump_json()
+    )
+
+
 def main():
+    # connection = _setup_rabbitmq()
+
     for topic, type in TOPICS:
         subscriber = TelemetrySubscriber(
+            # connection,
             topic,
             ENDPOINT,
-            _callback_from_type(type)
+            _callback_from_type(type),
         )
 
         thread = threading.Thread(target=subscriber.run, daemon=True)
