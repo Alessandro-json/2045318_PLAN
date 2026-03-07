@@ -240,7 +240,7 @@ def _setup_rabbitmq():
             channel.queue_bind(
                 exchange=EXCHANGE_NAME,
                 queue=queue_name,
-                routing_key='sensor.#',
+                routing_key='data.#',
             )
 
             print(' [*] Normalizer waiting for data... Press CTRL+C to exit')

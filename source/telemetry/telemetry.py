@@ -145,7 +145,7 @@ def _setup_rabbitmq():
 
 
 def _publish_to_queue(channel, schema_type, sensor_id, data):
-    routing_key = f"telemetry.{schema_type}.{sensor_id}"
+    routing_key = f"data.{schema_type}.{sensor_id}"
     channel.basic_publish(
         exchange=EXCHANGE_NAME,
         routing_key=routing_key,
