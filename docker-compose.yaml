@@ -71,6 +71,26 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./source
+      dockerfile: ./frontend/Dockerfile
+    ports:
+      - "3000:80"
+    networks:
+      - backend
+    depends_on:
+      sensors-poller:
+        condition: service_started
+      telemetry-poller:
+        condition: service_started
+      normalizer:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq_server
