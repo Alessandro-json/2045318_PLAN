@@ -50,6 +50,25 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  backend:
+    build:
+      context: ./source/
+      dockerfile: ./backend/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RABBIT_HOST=rabbitmq
+    networks:
+      - backend
+    depends_on:
+      sensors-poller:
+        condition: service_started
+      telemetry-poller:
+        condition: service_started
+      normalizer:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq_server
