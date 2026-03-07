@@ -5,15 +5,64 @@ function App() {
     const { latest, history, updateRate, setUpdateRate } = useNormalizedData();
     const [expandedGraphs, setExpandedGraphs] = useState({});
     const [showSettings, setShowSettings] = useState(false);
-    const [activeTab, setActiveTab] = useState('telemetry');
+    const [activeTab, setActiveTab] = useState('sensors');
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'normal': return '✓';
-            case 'warning': return '⚠';
-            case 'critical': return '⚠';
-            default: return '●';
+    const getStatusIcon = (source, metric, status) => {
+        const lowerSource = source.toLowerCase();
+        const lowerMetric = metric.toLowerCase();
+
+        // Determine icon based on metric type
+        let iconSvg = '';
+
+        if (lowerSource.includes('power') || lowerSource.includes('solar') || lowerMetric.includes('power') || lowerMetric.includes('voltage') || lowerMetric.includes('current')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
+                </svg>
+            );
+        } else if (lowerMetric.includes('temp') || lowerMetric.includes('thermal') || lowerMetric.includes('heat')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                </svg>
+            );
+        } else if (lowerMetric.includes('pressure') || lowerMetric.includes('flow') || lowerSource.includes('airlock')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+            );
+        } else if (lowerMetric.includes('radiation') || lowerMetric.includes('particle')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v6m0 6v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M1 12h6m6 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" />
+                </svg>
+            );
+        } else if (lowerMetric.includes('co2') || lowerMetric.includes('o2') || lowerMetric.includes('air') || lowerSource.includes('life_support') || lowerSource.includes('environment')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 11a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                    <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+                </svg>
+            );
+        } else if (lowerMetric.includes('humidity') || lowerMetric.includes('water') || lowerMetric.includes('moisture')) {
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0L12 2.69z" />
+                </svg>
+            );
+        } else {
+            // Default sensor icon
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+            );
         }
+
+        return iconSvg;
     };
 
     const calculateTrend = useCallback((key) => {
@@ -68,8 +117,12 @@ function App() {
         return unitMap[unit] || unit;
     };
 
+    const formatName = (name) => {
+        return name.replace(/_/g, ' ');
+    };
+
     const categorizeSensor = (source, metric) => {
-        const telemetrySources = ['power', 'environment', 'thermal', 'airlock'];
+        const telemetrySources = ['power', 'environment', 'thermal', 'airlock', 'solar', 'radiation', 'life_support', 'life support', 'primary'];
         const lowerSource = source.toLowerCase();
         const lowerMetric = metric.toLowerCase();
 
@@ -156,15 +209,17 @@ function App() {
         const trend = calculateTrend(key);
         const isGraphExpanded = expandedGraphs[key];
         const formattedUnit = formatUnit(data.unit);
+        const formattedSource = formatName(data.source);
+        const formattedMetric = formatName(data.metric);
 
         return (
             <div key={key} className={`telemetry-card status-${data.status} ${isGraphExpanded ? 'expanded' : ''}`}>
                 <div className="card-header">
-                    <span className="status-icon">{getStatusIcon(data.status)}</span>
-                    <span className="card-source">{data.source}</span>
+                    <span className="status-icon">{getStatusIcon(data.source, data.metric, data.status)}</span>
+                    <span className="card-source">{formattedSource}</span>
                 </div>
                 <div className="card-body">
-                    <h3 className="metric-name">{data.metric}</h3>
+                    <h3 className="metric-name">{formattedMetric}</h3>
                     <div className="value-row">
                         <p className="metric-value">
                             {data.value} <span className="metric-unit">{formattedUnit}</span>
@@ -205,33 +260,7 @@ function App() {
                             <span className="badge-icon">⚠</span>
                             <span className="badge-text">MARS HABITAT α-7</span>
                         </div>
-                        <div className="header-controls">
-                            <button
-                                className="settings-toggle"
-                                onClick={() => setShowSettings(!showSettings)}
-                                title="Configure update rate"
-                            >
-                                ⚙ SETTINGS
-                            </button>
-                        </div>
                     </div>
-                    {showSettings && (
-                        <div className="settings-panel">
-                            <label htmlFor="update-rate">
-                                <span className="setting-label">UPDATE THROTTLE (MS):</span>
-                                <input
-                                    id="update-rate"
-                                    type="number"
-                                    min="100"
-                                    max="5000"
-                                    step="100"
-                                    value={updateRate}
-                                    onChange={(e) => setUpdateRate(Number(e.target.value))}
-                                />
-                                <span className="setting-hint">Lower = faster updates, higher CPU usage</span>
-                            </label>
-                        </div>
-                    )}
                     <h1 className="dashboard-title">HABITAT TELEMETRY MATRIX</h1>
                     <div className="status-summary">
                         <span className="summary-item">
@@ -252,20 +281,20 @@ function App() {
                 {/* Tab Navigation */}
                 <div className="tab-navigation">
                     <button
-                        className={`tab-button ${activeTab === 'telemetry' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('telemetry')}
-                    >
-                        <span className="tab-icon">⚡</span>
-                        <span className="tab-label">TELEMETRY</span>
-                        <span className="tab-count">{telemetryData.length}</span>
-                    </button>
-                    <button
                         className={`tab-button ${activeTab === 'sensors' ? 'active' : ''}`}
                         onClick={() => setActiveTab('sensors')}
                     >
                         <span className="tab-icon">📡</span>
                         <span className="tab-label">SENSORS</span>
                         <span className="tab-count">{sensorData.length}</span>
+                    </button>
+                    <button
+                        className={`tab-button ${activeTab === 'telemetry' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('telemetry')}
+                    >
+                        <span className="tab-icon">⚡</span>
+                        <span className="tab-label">TELEMETRY</span>
+                        <span className="tab-count">{telemetryData.length}</span>
                     </button>
                     <button
                         className={`tab-button ${activeTab === 'actuators' ? 'active' : ''}`}
@@ -341,6 +370,45 @@ function App() {
                     </div>
                 </div>
             </aside>
+
+            {/* Floating Settings Button */}
+            <button
+                className="floating-settings-btn"
+                onClick={() => setShowSettings(!showSettings)}
+                title="Configure update rate"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v6m0 6v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M1 12h6m6 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" />
+                </svg>
+            </button>
+
+            {/* Floating Settings Panel */}
+            {showSettings && (
+                <div className="floating-settings-panel">
+                    <div className="floating-panel-header">
+                        <span className="panel-title">SYSTEM CONFIG</span>
+                        <button className="panel-close" onClick={() => setShowSettings(false)}>✕</button>
+                    </div>
+                    <label htmlFor="update-rate" className="slider-control">
+                        <div className="setting-header">
+                            <span className="setting-label">UPDATE THROTTLE:</span>
+                            <span className="setting-value">{updateRate} ms</span>
+                        </div>
+                        <input
+                            id="update-rate"
+                            type="range"
+                            min="100"
+                            max="5000"
+                            step="100"
+                            value={updateRate}
+                            onChange={(e) => setUpdateRate(Number(e.target.value))}
+                            className="update-slider"
+                        />
+                        <span className="setting-hint">Lower = faster updates, higher CPU usage</span>
+                    </label>
+                </div>
+            )}
         </div>
     );
 }
