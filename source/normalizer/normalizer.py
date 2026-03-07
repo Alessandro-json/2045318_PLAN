@@ -184,7 +184,7 @@ def _normalize_data(model):
             metric='cycles_per_hour',
             unit='cycles/hour',
             value=model.cycles_per_hour,
-            status=model.status,
+            status=model.last_state,
         ))
     else:
         print('error: unrecognized model type')
