@@ -80,3 +80,13 @@ class AirlockResponse(BaseModel):
     airlock_id: str
     cycles_per_hour: float
     last_state: Literal['IDLE', 'PRESSURIZING', 'DEPRESSURIZING']
+
+
+class NormalizedData(BaseModel):
+    id: str
+    timestamp: datetime
+    source: str
+    metric: str
+    unit: str
+    value: float
+    status: Literal['ok', 'warning', 'DEPRESSURIZING', 'IDLE', 'PRESSURIZING']

@@ -6,7 +6,8 @@ import time
 from pydantic import ValidationError, BaseModel
 from datetime import datetime
 from models.models import ScalarResponse, ChemistryResponse, ParticulateResponse, \
-    LevelResponse, PowerResponse, EnvironmentResponse, ThermalLoopResponse, AirlockResponse  # noqa: E501
+    LevelResponse, PowerResponse, EnvironmentResponse, ThermalLoopResponse, \
+    AirlockResponse, NormalizedData
 from typing import Literal
 
 
@@ -24,16 +25,6 @@ MODEL_MAP = {
     'thermal_loop': ThermalLoopResponse,
     'airlock': AirlockResponse,
 }
-
-
-class NormalizedData(BaseModel):
-    id: str
-    timestamp: datetime
-    source: str
-    metric: str
-    unit: str
-    value: float
-    status: Literal['ok', 'warning', 'DEPRESSURIZING', 'IDLE', 'PRESSURIZING']
 
 
 def _normalize_data(model):

@@ -1,3 +1,4 @@
+from models.models import NormalizedData
 
 
 def main():
