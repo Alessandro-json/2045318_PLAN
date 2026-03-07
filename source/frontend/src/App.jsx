@@ -26,10 +26,14 @@ function App() {
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
                 </svg>
             );
-        } else if (lowerMetric.includes('pressure') || lowerMetric.includes('flow') || lowerSource.includes('airlock')) {
+        } else if (lowerMetric.includes('pressure') || lowerMetric.includes('flow') || lowerSource.includes('airlock') || lowerSource.includes('corridor')) {
             iconSvg = (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                    <path d="M12 2v4" />
+                    <path d="M12 18v4" />
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 12l-6 4" />
+                    <path d="M12 12h6" />
                 </svg>
             );
         } else if (lowerMetric.includes('radiation') || lowerMetric.includes('particle')) {
@@ -42,8 +46,9 @@ function App() {
         } else if (lowerMetric.includes('co2') || lowerMetric.includes('o2') || lowerMetric.includes('air') || lowerSource.includes('life_support') || lowerSource.includes('environment')) {
             iconSvg = (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 11a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                    <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+                    <path d="M3 8c0 3.5 2.5 6 5 8s4.5 4 4.5 4S15 18.5 17.5 16S23 11.5 23 8" />
+                    <path d="M1 8c0 3.5 2.5 6 5 8" />
+                    <path d="M12.5 4.5c1.5-1.5 4-1.5 5.5 0s1.5 4 0 5.5" />
                 </svg>
             );
         } else if (lowerMetric.includes('humidity') || lowerMetric.includes('water') || lowerMetric.includes('moisture')) {
@@ -255,26 +260,42 @@ function App() {
         <div className="app-container">
             <div className="dashboard">
                 <header className="dashboard-header">
-                    <div className="header-top">
-                        <div className="mission-badge">
-                            <span className="badge-icon">⚠</span>
-                            <span className="badge-text">MARS HABITAT α-7</span>
+                    {/* Row 1: Mission Info Bar */}
+                    <div className="header-row-1">
+                        <div className="mission-id">
+                            <div className="mission-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                    <path d="M2 12h20" />
+                                </svg>
+                            </div>
+                            <div className="mission-details">
+                                <span className="mission-code">HABITAT α-7</span>
+                                <span className="mission-location">OLYMPUS MONS SECTOR</span>
+                            </div>
+                        </div>
+                        <div className="mission-time">
+                            <span className="time-label">MARS UTC</span>
+                            <span className="time-value">{new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
                         </div>
                     </div>
-                    <h1 className="dashboard-title">HABITAT TELEMETRY MATRIX</h1>
-                    <div className="status-summary">
-                        <span className="summary-item">
-                            <span className="summary-label">ACTIVE</span>
-                            <strong>{Object.keys(latest).length}</strong>
-                        </span>
-                        <span className="summary-item">
-                            <span className="summary-label">SOL</span>
-                            <strong>{Math.floor((Date.now() / 1000 / 86400) % 687)}</strong>
-                        </span>
-                        <span className="summary-item">
-                            <span className="summary-label">STATUS</span>
-                            <strong className="status-degraded">DEGRADED</strong>
-                        </span>
+
+                    {/* Row 2: Main Title */}
+                    <div className="header-row-2">
+                        <h1 className="main-title">
+                            <span className="title-line-1">SPACEY</span>
+                            <span className="title-line-2">MONITORING SYSTEM</span>
+                        </h1>
+                    </div>
+
+                    {/* Row 3: Subtitle + Status */}
+                    <div className="header-row-3">
+                        <div className="subtitle">Real-time Habitat Environmental Control & Life Support. Please don't die.</div>
+                        <div className="system-status">
+                            <div className="status-indicator status-warning"></div>
+                            <span className="status-text">SYSTEM DEGRADED</span>
+                        </div>
                     </div>
                 </header>
 
@@ -379,7 +400,7 @@ function App() {
             >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
-                    <path d="M12 1v6m0 6v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M1 12h6m6 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" />
+                    <path d="M10.2 3.2a2 2 0 0 1 3.6 0l.5 1.2a2 2 0 0 0 2.4 1.1l1.2-.4a2 2 0 0 1 2.5 2.5l-.4 1.2a2 2 0 0 0 1.1 2.4l1.2.5a2 2 0 0 1 0 3.6l-1.2.5a2 2 0 0 0-1.1 2.4l.4 1.2a2 2 0 0 1-2.5 2.5l-1.2-.4a2 2 0 0 0-2.4 1.1l-.5 1.2a2 2 0 0 1-3.6 0l-.5-1.2a2 2 0 0 0-2.4-1.1l-1.2.4a2 2 0 0 1-2.5-2.5l.4-1.2a2 2 0 0 0-1.1-2.4l-1.2-.5a2 2 0 0 1 0-3.6l1.2-.5a2 2 0 0 0 1.1-2.4l-.4-1.2a2 2 0 0 1 2.5-2.5l1.2.4a2 2 0 0 0 2.4-1.1l.5-1.2z" />
                 </svg>
             </button>
 
