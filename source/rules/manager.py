@@ -113,6 +113,44 @@ async def delete_rule(rule_id: str, db: Session = Depends(get_db)):
     return {"message": "Rule deleted"}
 
 
+@app.patch("/api/rules/{rule_id}", response_model=RuleResponse)
+async def update_rule(rule_id: str, rule: Rule, db: Session = Depends(get_db)):
+    db_rule = db.query(RulesTable).filter(RulesTable.id == rule_id).first()
+
+    if not db_rule:
+        raise HTTPException(status_code=404, detail="Rule not found")
+
+    db_rule.sensor_id = rule.sensor_id
+    db_rule.condition = rule.condition
+    db_rule.threshold = rule.threshold
+    db_rule.actuator_id = rule.actuator_id
+
+    db.commit()
+    db.refresh(db_rule)
+
+    await refresh_rule_cache()
+    return db_rule
+
+
+@app.put("/api/rules/{rule_id}", response_model=RuleResponse)
+async def update_rule_put(rule_id: str, rule: Rule, db: Session = Depends(get_db)):  # noqa: E501
+    db_rule = db.query(RulesTable).filter(RulesTable.id == rule_id).first()
+
+    if not db_rule:
+        raise HTTPException(status_code=404, detail="Rule not found")
+
+    db_rule.sensor_id = rule.sensor_id
+    db_rule.condition = rule.condition
+    db_rule.threshold = rule.threshold
+    db_rule.actuator_id = rule.actuator_id
+
+    db.commit()
+    db.refresh(db_rule)
+
+    await refresh_rule_cache()
+    return db_rule
+
+
 async def refresh_rule_cache():
     global cached_rules
     db = SessionLocal()
