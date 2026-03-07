@@ -2,12 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir pydantic[email] fastapi uvicorn websockets sqlalchemy websocket-client
+RUN pip install --no-cache-dir pydantic[email] fastapi uvicorn websockets sqlalchemy websocket-client httpx
 
-COPY manager/manager.py .
+COPY rules/manager.py .
+COPY rules/database.py .
 COPY models ./models
 
 RUN touch ./models/__init__.py
+
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 EXPOSE 8000
 

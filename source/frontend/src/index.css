@@ -1224,6 +1224,174 @@ button:focus-visible {
     gap: 1rem;
 }
 
+.rule-manager-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.rule-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.rule-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.rule-field span {
+    font-size: 0.72rem;
+    color: var(--color-accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: monospace;
+    font-weight: 700;
+}
+
+.rule-field input,
+.rule-field select {
+    width: 100%;
+    padding: 0.55rem 0.6rem;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.rule-field input:focus,
+.rule-field select:focus {
+    outline: 2px solid rgba(245, 158, 11, 0.4);
+    outline-offset: 0;
+    border-color: var(--color-accent);
+}
+
+.rule-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.rule-form-error {
+    margin: 0;
+    color: var(--color-critical);
+    font-size: 0.75rem;
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    background: rgba(220, 38, 38, 0.1);
+    padding: 0.5rem;
+    font-family: monospace;
+}
+
+.rule-action-btn {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    border-width: 1px;
+}
+
+.rule-refresh-btn {
+    margin-left: auto;
+}
+
+.rule-secondary-btn {
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+}
+
+.rule-secondary-btn:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.rule-danger-btn {
+    border-color: var(--color-critical);
+    color: #fecaca;
+}
+
+.rule-danger-btn:hover {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: var(--color-critical);
+}
+
+.rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.rule-list-message {
+    margin: 0;
+    padding: 1rem;
+    border: 1px dashed var(--color-border);
+    color: var(--color-text-secondary);
+    text-align: center;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.rule-item {
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.rule-item-active {
+    border-left: 3px solid var(--color-normal);
+}
+
+.rule-item-inactive {
+    border-left: 3px solid var(--color-warning);
+    opacity: 0.85;
+}
+
+.rule-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.rule-expression {
+    color: var(--color-text-primary);
+    font-size: 0.8rem;
+    font-family: monospace;
+    word-break: break-word;
+}
+
+.rule-target {
+    color: var(--color-accent);
+    font-size: 0.75rem;
+    font-family: monospace;
+    word-break: break-word;
+}
+
+.rule-item-status {
+    font-size: 0.68rem;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.08em;
+    font-family: monospace;
+}
+
+.rule-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
 .placeholder-message {
     display: flex;
     flex-direction: column;
@@ -1303,6 +1471,25 @@ button:focus-visible {
 
 .placeholder-content {
     text-align: center;
+}
+
+.actuator-list {
+    margin-top: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.actuator-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--color-border);
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--color-text-primary);
+    font-family: monospace;
+    font-size: 0.75rem;
 }
 
 .placeholder-text {
@@ -1572,6 +1759,18 @@ button:focus-visible {
 
     .rule-manager {
         padding: 1rem;
+    }
+
+    .rule-manager-summary {
+        flex-wrap: wrap;
+    }
+
+    .rule-form-actions {
+        flex-direction: column;
+    }
+
+    .rule-action-btn {
+        width: 100%;
     }
 
     .placeholder-message {

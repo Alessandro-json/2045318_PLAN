@@ -103,6 +103,8 @@ services:
       - "9000:9000"
     networks:
       - backend
+    volumes:
+      - rule_data:/app/data
     depends_on:
       sensors-poller:
         condition: service_started
@@ -146,3 +148,4 @@ networks:
 
 volumes:
   rabbitmq_data:
+  rule_data:

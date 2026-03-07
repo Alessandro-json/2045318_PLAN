@@ -7,6 +7,7 @@ import httpx
 
 from database import engine, SessionLocal, Base
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, String, Float, Boolean
 from pydantic import BaseModel
@@ -15,6 +16,20 @@ from typing import Literal
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:9000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 cached_active_rules = []
 
 OPS = {
@@ -89,7 +104,7 @@ def list_rules(db: Session = Depends(get_db)):
 async def delete_rule(rule_id: str, db: Session = Depends(get_db)):
     db \
         .query(RulesTable) \
-        .filter(Rule.id == rule_id) \
+        .filter(RulesTable.id == rule_id) \
         .delete()
 
     db.commit()
@@ -150,6 +165,8 @@ async def trigger_actuator(actuator_id: str, action: str):
 
 @app.on_event("startup")
 async def startup_event():
+    Base.metadata.create_all(bind=engine)
+
     await refresh_rule_cache()
     asyncio.create_task(telemetry_listener())
 

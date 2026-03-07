@@ -1,11 +1,23 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNormalizedData } from './hooks/NormalizedDataHook'
+import { useRules } from './hooks/RulesHook'
+
+const DEFAULT_RULE_FORM = {
+    sensor_id: '',
+    condition: '>',
+    threshold: '',
+    actuator_id: ''
+};
 
 function App() {
     const { latest, history, updateRate, setUpdateRate } = useNormalizedData();
+    const { rules, isLoading: rulesLoading, isMutating: rulesMutating, error: rulesError, fetchRules, createRule, updateRule, deleteRule, toggleRule } = useRules();
     const [expandedGraphs, setExpandedGraphs] = useState({});
     const [showSettings, setShowSettings] = useState(false);
     const [activeTab, setActiveTab] = useState('sensors');
+    const [ruleForm, setRuleForm] = useState(DEFAULT_RULE_FORM);
+    const [editingRuleId, setEditingRuleId] = useState(null);
+    const [ruleFormError, setRuleFormError] = useState('');
 
     const getStatusIcon = (source, metric, status) => {
         const lowerSource = source.toLowerCase();
@@ -154,6 +166,92 @@ function App() {
 
         return { telemetryData: telemetry, sensorData: sensors };
     }, [latest]);
+
+    const sensorSuggestions = useMemo(() => {
+        const ids = Object.values(latest).map((data) => data.id).filter(Boolean);
+        const fromRules = rules.map((rule) => rule.sensor_id).filter(Boolean);
+        return Array.from(new Set([...ids, ...fromRules])).sort();
+    }, [latest, rules]);
+
+    const actuatorSuggestions = useMemo(() => {
+        const ids = rules.map((rule) => rule.actuator_id).filter(Boolean);
+        return Array.from(new Set(ids)).sort();
+    }, [rules]);
+
+    const activeRulesCount = useMemo(
+        () => rules.filter((rule) => rule.is_active).length,
+        [rules]
+    );
+
+    const handleRuleFormChange = useCallback((event) => {
+        const { name, value } = event.target;
+        setRuleForm((previous) => ({ ...previous, [name]: value }));
+    }, []);
+
+    const resetRuleEditor = useCallback(() => {
+        setEditingRuleId(null);
+        setRuleForm(DEFAULT_RULE_FORM);
+        setRuleFormError('');
+    }, []);
+
+    const handleEditRule = useCallback((rule) => {
+        setEditingRuleId(rule.id);
+        setRuleForm({
+            sensor_id: rule.sensor_id,
+            condition: rule.condition,
+            threshold: String(rule.threshold),
+            actuator_id: rule.actuator_id
+        });
+        setRuleFormError('');
+    }, []);
+
+    const handleSubmitRule = useCallback(async (event) => {
+        event.preventDefault();
+        setRuleFormError('');
+
+        const thresholdValue = Number(ruleForm.threshold);
+        const payload = {
+            sensor_id: ruleForm.sensor_id.trim(),
+            condition: ruleForm.condition,
+            threshold: thresholdValue,
+            actuator_id: ruleForm.actuator_id.trim()
+        };
+
+        if (!payload.sensor_id || !payload.actuator_id || Number.isNaN(thresholdValue)) {
+            setRuleFormError('Please provide sensor, actuator, and a numeric threshold.');
+            return;
+        }
+
+        try {
+            if (editingRuleId) {
+                await updateRule(editingRuleId, payload);
+            } else {
+                await createRule(payload);
+            }
+            resetRuleEditor();
+        } catch (error) {
+            setRuleFormError(error instanceof Error ? error.message : 'Failed to save rule');
+        }
+    }, [ruleForm, editingRuleId, createRule, updateRule, resetRuleEditor]);
+
+    const handleDeleteRule = useCallback(async (ruleId) => {
+        try {
+            await deleteRule(ruleId);
+            if (editingRuleId === ruleId) {
+                resetRuleEditor();
+            }
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [deleteRule, editingRuleId, resetRuleEditor]);
+
+    const handleToggleRule = useCallback(async (ruleId) => {
+        try {
+            await toggleRule(ruleId);
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [toggleRule]);
 
     const toggleGraph = useCallback((key) => {
         setExpandedGraphs(prev => ({
@@ -323,7 +421,7 @@ function App() {
                     >
                         <span className="tab-icon">🔧</span>
                         <span className="tab-label">ACTUATORS</span>
-                        <span className="tab-count">0</span>
+                        <span className="tab-count">{actuatorSuggestions.length}</span>
                     </button>
                 </div>
 
@@ -356,8 +454,21 @@ function App() {
                     {activeTab === 'actuators' && (
                         <div className="actuators-placeholder">
                             <div className="placeholder-content">
-                                <p className="placeholder-text">⚠ ACTUATOR INTERFACE OFFLINE</p>
-                                <p className="placeholder-subtext">Awaiting automation system initialization</p>
+                                {actuatorSuggestions.length > 0 ? (
+                                    <>
+                                        <p className="placeholder-text">REGISTERED ACTUATORS</p>
+                                        <div className="actuator-list">
+                                            {actuatorSuggestions.map((actuatorId) => (
+                                                <span key={actuatorId} className="actuator-chip">{actuatorId}</span>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="placeholder-text">⚠ NO ACTUATORS IN RULES</p>
+                                        <p className="placeholder-subtext">Add a rule to register actuator suggestions</p>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
@@ -375,19 +486,147 @@ function App() {
                 <div className="rule-manager-header">
                     <h2 className="rule-manager-title">AUTOMATION RULES</h2>
                     <div className="rule-status">
-                        <span className="status-indicator status-standby"></span>
-                        <span>STANDBY</span>
+                        <span className={`status-indicator ${rulesError ? 'status-warning' : 'status-standby'}`}></span>
+                        <span>{rulesError ? 'DEGRADED' : 'ONLINE'}</span>
                     </div>
                 </div>
                 <div className="rule-manager-content">
-                    <div className="placeholder-message">
-                        <div className="placeholder-icon">⚙</div>
-                        <p>RULE COMPILER</p>
-                        <p className="placeholder-subtitle">System pending initialization</p>
-                        <div className="system-notice">
-                            <p>⚠ AUTOMATION CORE OFFLINE</p>
-                            <p className="notice-detail">Manual control required</p>
+                    <div className="rule-manager-summary">
+                        <span>Total: {rules.length}</span>
+                        <span>Active: {activeRulesCount}</span>
+                        <button
+                            className="rule-action-btn rule-refresh-btn"
+                            onClick={fetchRules}
+                            disabled={rulesLoading || rulesMutating}
+                        >
+                            Refresh
+                        </button>
+                    </div>
+
+                    <form className="rule-form" onSubmit={handleSubmitRule}>
+                        <label className="rule-field">
+                            <span>Sensor Name</span>
+                            <input
+                                type="text"
+                                name="sensor_id"
+                                value={ruleForm.sensor_id}
+                                onChange={handleRuleFormChange}
+                                list="sensor-suggestions"
+                                placeholder="environment_sensor_01"
+                                required
+                            />
+                        </label>
+
+                        <label className="rule-field">
+                            <span>Operator</span>
+                            <select
+                                name="condition"
+                                value={ruleForm.condition}
+                                onChange={handleRuleFormChange}
+                            >
+                                <option value=">">&gt;</option>
+                                <option value=">=">&gt;=</option>
+                                <option value="<">&lt;</option>
+                                <option value="<=">&lt;=</option>
+                                <option value="==">==</option>
+                            </select>
+                        </label>
+
+                        <label className="rule-field">
+                            <span>Value</span>
+                            <input
+                                type="number"
+                                step="any"
+                                name="threshold"
+                                value={ruleForm.threshold}
+                                onChange={handleRuleFormChange}
+                                placeholder="75"
+                                required
+                            />
+                        </label>
+
+                        <label className="rule-field">
+                            <span>Actuator Name</span>
+                            <input
+                                type="text"
+                                name="actuator_id"
+                                value={ruleForm.actuator_id}
+                                onChange={handleRuleFormChange}
+                                list="actuator-suggestions"
+                                placeholder="fan_controller_A"
+                                required
+                            />
+                        </label>
+
+                        <div className="rule-form-actions">
+                            <button className="rule-action-btn" type="submit" disabled={rulesMutating}>
+                                {editingRuleId ? 'Update Rule' : 'Add Rule'}
+                            </button>
+                            {editingRuleId && (
+                                <button className="rule-action-btn rule-secondary-btn" type="button" onClick={resetRuleEditor}>
+                                    Cancel
+                                </button>
+                            )}
                         </div>
+
+                        {ruleFormError && <p className="rule-form-error">{ruleFormError}</p>}
+                        {rulesError && !ruleFormError && <p className="rule-form-error">{rulesError.message}</p>}
+                    </form>
+
+                    <datalist id="sensor-suggestions">
+                        {sensorSuggestions.map((sensorId) => (
+                            <option key={sensorId} value={sensorId} />
+                        ))}
+                    </datalist>
+
+                    <datalist id="actuator-suggestions">
+                        {actuatorSuggestions.map((actuatorId) => (
+                            <option key={actuatorId} value={actuatorId} />
+                        ))}
+                    </datalist>
+
+                    <div className="rules-list">
+                        {rulesLoading ? (
+                            <p className="rule-list-message">Loading rules...</p>
+                        ) : rules.length === 0 ? (
+                            <p className="rule-list-message">No rules configured yet.</p>
+                        ) : (
+                            rules.map((rule) => (
+                                <div key={rule.id} className={`rule-item ${rule.is_active ? 'rule-item-active' : 'rule-item-inactive'}`}>
+                                    <div className="rule-item-main">
+                                        <span className="rule-expression">{rule.sensor_id} {rule.condition} {rule.threshold}</span>
+                                        <span className="rule-target">{rule.actuator_id}</span>
+                                    </div>
+                                    <div className="rule-item-status">{rule.is_active ? 'ACTIVE' : 'INACTIVE'}</div>
+                                    <div className="rule-item-actions">
+                                        <button
+                                            className="rule-action-btn rule-secondary-btn"
+                                            type="button"
+                                            onClick={() => handleEditRule(rule)}
+                                            disabled={rulesMutating}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className="rule-action-btn rule-secondary-btn"
+                                            type="button"
+                                            onClick={() => handleToggleRule(rule.id)}
+                                            disabled={rulesMutating}
+                                        >
+                                            {rule.is_active ? 'Disable' : 'Enable'}
+                                        </button>
+                                        <button
+                                            className="rule-action-btn rule-danger-btn"
+                                            type="button"
+                                            onClick={() => handleDeleteRule(rule.id)}
+                                            disabled={rulesMutating}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </aside>

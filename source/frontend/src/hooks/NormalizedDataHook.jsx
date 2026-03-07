@@ -60,8 +60,6 @@ export function useNormalizedData() {
                 const data = JSON.parse(event.data);
                 const key = `${data.id}_${data.metric}`;
 
-                console.log('Received data:', key, data.value);
-
                 // Accumulate in buffer instead of immediate state update
                 latestBufferRef.current = {
                     ...latestBufferRef.current,
