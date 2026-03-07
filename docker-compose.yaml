@@ -92,6 +92,28 @@ services:
         condition: service_healthy
       backend:
         condition: service_started
+      rules:
+        condition: service_started
+
+  rules:
+    build:
+      context: ./source
+      dockerfile: ./rules/Dockerfile
+    ports:
+      - "9000:9000"
+    networks:
+      - backend
+    depends_on:
+      sensors-poller:
+        condition: service_started
+      telemetry-poller:
+        condition: service_started
+      normalizer:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      backend:
+        condition: service_started
 
   rabbitmq:
     image: rabbitmq:3.13-management
