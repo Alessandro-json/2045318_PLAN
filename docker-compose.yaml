@@ -55,6 +55,8 @@ services:
     build:
       context: ./source/
       dockerfile: ./backend/Dockerfile
+    ports:
+      - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - RABBIT_HOST=rabbitmq
