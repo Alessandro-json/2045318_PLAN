@@ -318,9 +318,9 @@ function App() {
     };
 
     const categorizeSensor = (source, metric) => {
-        const telemetrySources = ['power', 'environment', 'thermal', 'airlock', 'solar', 'radiation', 'life_support', 'life support', 'primary'];
-        const lowerSource = source.toLowerCase();
-        const lowerMetric = metric.toLowerCase();
+        const telemetrySources = ['power', 'environment', 'thermal', 'airlock', 'solar', 'radiation', 'life support', 'habitat alpha', 'primary'];
+        const lowerSource = String(source || '').toLowerCase().replace(/[._-]+/g, ' ');
+        const lowerMetric = String(metric || '').toLowerCase().replace(/[._-]+/g, ' ');
 
         if (telemetrySources.some(keyword =>
             lowerSource.includes(keyword) || lowerMetric.includes(keyword)
