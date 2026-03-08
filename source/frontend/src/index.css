@@ -1457,6 +1457,7 @@ button:focus-visible {
 /* Actuators Section */
 .actuators-section {
     min-height: 150px;
+    padding-top: 0.6rem;
 }
 
 .actuators-toolbar {
@@ -1464,6 +1465,7 @@ button:focus-visible {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    margin-top: 0.4rem;
 }
 
 .actuator-error-text {
@@ -1481,24 +1483,105 @@ button:focus-visible {
 .actuator-card {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
-    padding: 1rem;
-    border: 1px solid var(--color-border);
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.5));
+    gap: 0.9rem;
+}
+
+.actuator-card.status-warning {
+    animation: none;
 }
 
 .actuator-card-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 0.5rem;
 }
 
-.actuator-card-id {
-    font-family: monospace;
-    color: var(--color-text-primary);
-    letter-spacing: 0.04em;
-    word-break: break-word;
+.actuator-card-header .actuator-switch {
+    margin-left: auto;
+}
+
+.actuator-card-body {
+    margin: 0.8rem 0 0.4rem;
+}
+
+.actuator-name {
+    font-family: 'Arial', sans-serif;
+    text-transform: capitalize;
+    line-height: 1.2;
+}
+
+.actuator-value {
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+}
+
+.actuator-card-footer {
+    gap: 0.75rem;
+}
+
+.actuator-switch {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    padding: 0.25rem;
+    min-width: 0;
+}
+
+.actuator-switch:hover,
+.actuator-switch:focus,
+.actuator-switch:focus-visible {
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+.actuator-switch-track {
+    width: 36px;
+    height: 18px;
+    border-radius: 999px;
+    border: none;
+    background: #2b2b2b;
+    display: inline-flex;
+    align-items: center;
+    padding: 1px;
+    transition: background 0.2s ease;
+}
+
+.actuator-switch-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fef3c7;
+    transition: transform 0.2s ease;
+}
+
+.actuator-switch.is-on {
+    color: var(--color-normal);
+}
+
+.actuator-switch.is-on .actuator-switch-track {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: var(--color-normal);
+}
+
+.actuator-switch.is-on .actuator-switch-thumb {
+    transform: translateX(18px);
+    background: #d1fae5;
+}
+
+.actuator-switch.is-off {
+    color: #fecaca;
+}
+
+.actuator-switch.is-off .actuator-switch-track {
+    background: rgba(220, 38, 38, 0.4);
+    border-color: var(--color-critical);
+}
+
+.actuator-switch.is-off .actuator-switch-thumb {
+    background: #fee2e2;
 }
 
 .actuators-placeholder {

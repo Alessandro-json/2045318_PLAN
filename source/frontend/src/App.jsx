@@ -24,7 +24,6 @@ function App() {
         isLoading: actuatorsLoading,
         isMutating: actuatorsMutating,
         error: actuatorsError,
-        fetchActuators,
         activateActuator
     } = useActuators();
 
@@ -147,6 +146,49 @@ function App() {
         return name.replace(/_/g, ' ');
     };
 
+    const getActuatorIcon = (actuatorId) => {
+        const normalizedId = String(actuatorId || '').toLowerCase();
+
+        if (normalizedId.includes('cooling_fan') || normalizedId.includes('hall_ventilation')) {
+            return (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="2.5" />
+                    <path d="M12 4c2 0 3 1.2 3 2.7 0 1.7-1.3 2.6-3 2.6" />
+                    <path d="M19 12c0 2-1.2 3-2.7 3-1.7 0-2.6-1.3-2.6-3" />
+                    <path d="M12 20c-2 0-3-1.2-3-2.7 0-1.7 1.3-2.6 3-2.6" />
+                    <path d="M5 12c0-2 1.2-3 2.7-3 1.7 0 2.6 1.3 2.6 3" />
+                </svg>
+            );
+        }
+
+        if (normalizedId.includes('entrance_humidifier')) {
+            return (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0L12 2.69z" />
+                </svg>
+            );
+        }
+
+        if (normalizedId.includes('habitat_heater')) {
+            return (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M7 21c0-2 1.1-3.2 1.1-4.8 0-1.7-1.1-2.9-1.1-4.8 0-1.7 1.1-2.9 1.1-4.5" />
+                    <path d="M12 21c0-2 1.1-3.2 1.1-4.8 0-1.7-1.1-2.9-1.1-4.8 0-1.7 1.1-2.9 1.1-4.5" />
+                    <path d="M17 21c0-2 1.1-3.2 1.1-4.8 0-1.7-1.1-2.9-1.1-4.8 0-1.7 1.1-2.9 1.1-4.5" />
+                </svg>
+            );
+        }
+
+        return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="9" width="16" height="9" rx="2" />
+                <path d="M8 9V6" />
+                <path d="M16 9V6" />
+                <path d="M12 18v2" />
+            </svg>
+        );
+    };
+
     const categorizeSensor = (source, metric) => {
         const telemetrySources = ['power', 'environment', 'thermal', 'airlock', 'solar', 'radiation', 'life_support', 'life support', 'primary'];
         const lowerSource = source.toLowerCase();
@@ -200,6 +242,13 @@ function App() {
         () => rules.filter((rule) => rule.is_active).length,
         [rules]
     );
+
+    const activeRuleActuators = useMemo(() => new Set(
+        rules
+            .filter((rule) => rule.is_active)
+            .map((rule) => rule.actuator_id)
+            .filter(Boolean)
+    ), [rules]);
 
     const handleRuleFormChange = useCallback((event) => {
         const { name, value } = event.target;
@@ -472,14 +521,6 @@ function App() {
                     {activeTab === 'actuators' && (
                         <div className="actuators-section">
                             <div className="actuators-toolbar">
-                                <button
-                                    className="rule-action-btn rule-refresh-btn"
-                                    type="button"
-                                    onClick={fetchActuators}
-                                    disabled={actuatorsLoading || actuatorsMutating}
-                                >
-                                    Refresh
-                                </button>
                                 {actuatorsError && <span className="actuator-error-text">{actuatorsError.message}</span>}
                             </div>
 
@@ -497,21 +538,39 @@ function App() {
                             ) : (
                                 <div className="actuators-grid">
                                     {actuators.map((actuator) => (
-                                        <div key={actuator.id} className="actuator-card">
+                                        <div
+                                            key={actuator.id}
+                                            className={`actuator-card telemetry-card status-${actuator.isActive ? 'normal' : 'warning'}`}
+                                        >
                                             <div className="actuator-card-header">
-                                                <span className="actuator-card-id">{actuator.id}</span>
-                                                <span className={`status-badge ${actuator.isActive ? 'status-badge-normal' : 'status-badge-warning'}`}>
-                                                    {actuator.state}
+                                                <span className="status-icon">
+                                                    {getActuatorIcon(actuator.id)}
+                                                </span>
+                                                <span className="card-source">Actuator</span>
+                                                <button
+                                                    className={`actuator-switch ${actuator.isActive ? 'is-on' : 'is-off'}`}
+                                                    type="button"
+                                                    onClick={() => handleSetActuatorState(actuator.id, actuator.isActive ? 'OFF' : 'ON')}
+                                                    disabled={actuatorsMutating}
+                                                    aria-label={actuator.isActive ? `Deactivate ${actuator.id}` : `Activate ${actuator.id}`}
+                                                    title={actuator.isActive ? 'Turn OFF' : 'Turn ON'}
+                                                >
+                                                    <span className="actuator-switch-track">
+                                                        <span className="actuator-switch-thumb"></span>
+                                                    </span>
+                                                </button>
+                                            </div>
+
+                                            <div className="card-body actuator-card-body">
+                                                <h3 className="metric-name actuator-name">{formatName(actuator.id)}</h3>
+                                                <p className="metric-value actuator-value">{actuator.isActive ? 'ON' : 'OFF'}</p>
+                                            </div>
+
+                                            <div className="card-footer actuator-card-footer">
+                                                <span className={`status-badge ${actuator.isActive && activeRuleActuators.has(actuator.id) ? 'status-badge-critical' : 'status-badge-warning'}`}>
+                                                    {actuator.isActive && activeRuleActuators.has(actuator.id) ? 'Activated by Rule' : 'Manual/Idle'}
                                                 </span>
                                             </div>
-                                            <button
-                                                className="rule-action-btn"
-                                                type="button"
-                                                onClick={() => handleSetActuatorState(actuator.id, actuator.isActive ? 'OFF' : 'ON')}
-                                                disabled={actuatorsMutating}
-                                            >
-                                                {actuator.isActive ? 'Deactivate' : 'Activate'}
-                                            </button>
                                         </div>
                                     ))}
                                 </div>
