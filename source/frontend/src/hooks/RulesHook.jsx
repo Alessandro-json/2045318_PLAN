@@ -131,6 +131,20 @@ export function useRules() {
         }
     }, []);
 
+    const deleteAllRules = useCallback(async () => {
+        setError(null);
+        setIsMutating(true);
+        try {
+            await request('', { method: 'DELETE' });
+            setRules([]);
+        } catch (err) {
+            setError(err);
+            throw err;
+        } finally {
+            setIsMutating(false);
+        }
+    }, []);
+
     const toggleRule = useCallback(async (ruleId) => {
         setError(null);
         setIsMutating(true);
@@ -159,6 +173,7 @@ export function useRules() {
         createRule,
         updateRule,
         deleteRule,
+        deleteAllRules,
         toggleRule
     };
 }

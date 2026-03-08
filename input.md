@@ -6,6 +6,11 @@
 4. As a user, I want to specify rules based on values reported by the sensor and take action through the actuators.
 5. As a user, I want to delete previously specified rules.
 6. As a user, I want to be able to temporarily toggle a rule.
-7. As a user, I want the system to highlight values violating the condition of a rule and which specific rule triggered it.
+7. As a user, I want the system identify which rule activated an actuator.
 8. As a user, I want to give names to rules.
 9. As a user, I want to be able to edit a rule.
+10. As a user, I want to see at a glance the overall health of the system.
+11. As a user, I want to be able to control the polling rate of the data from the sensors.
+12. As a user, I want to be able to quickly see the trend of sensed data.
+13. As a user, I want to be able to remove all rules at once.
+14. As a user, I want to be able to see for how long an actuator has been activated.

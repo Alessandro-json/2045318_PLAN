@@ -4,15 +4,28 @@ import { useRules } from './hooks/RulesHook'
 import { useActuators } from './hooks/ActuatorsHook';
 
 const DEFAULT_RULE_FORM = {
+    name: '',
     sensor_id: '',
+    sensor_metric: '',
     condition: '>',
     threshold: '',
-    actuator_id: ''
+    actuator_id: '',
+    action: 'ON'
 };
 
 function App() {
     const { latest, history, updateRate, setUpdateRate } = useNormalizedData();
-    const { rules, isLoading: rulesLoading, isMutating: rulesMutating, error: rulesError, fetchRules, createRule, updateRule, deleteRule, toggleRule } = useRules();
+    const {
+        rules,
+        isLoading: rulesLoading,
+        isMutating: rulesMutating,
+        error: rulesError,
+        createRule,
+        updateRule,
+        deleteRule,
+        deleteAllRules,
+        toggleRule
+    } = useRules();
     const [expandedGraphs, setExpandedGraphs] = useState({});
     const [showSettings, setShowSettings] = useState(false);
     const [activeTab, setActiveTab] = useState('sensors');
@@ -119,32 +132,65 @@ function App() {
         }
     };
 
-    const formatUnit = (unit) => {
-        const unitMap = {
-            'ug_m3': 'μg/m³',
-            'mg_m3': 'mg/m³',
-            'ppm': 'ppm',
-            'C': '°C',
-            'F': '°F',
-            'K': 'K',
-            'Pa': 'Pa',
-            'kPa': 'kPa',
-            'W': 'W',
-            'kW': 'kW',
-            'A': 'A',
-            'V': 'V',
-            '%': '%',
-            'L_min': 'L/min',
-            'kg_s': 'kg/s',
-            'm_s': 'm/s',
-            'rpm': 'rpm'
-        };
-        return unitMap[unit] || unit;
-    };
+    const prettifyChemicals = useCallback((value) => (
+        String(value || '')
+            .replace(/\bco2\b/gi, 'CO₂')
+            .replace(/\bo2\b/gi, 'O₂')
+    ), []);
 
-    const formatName = (name) => {
-        return name.replace(/_/g, ' ');
-    };
+    const formatUnit = useCallback((unit) => {
+        const normalizedUnit = String(unit || '')
+            .trim()
+            .replace(/\//g, '_')
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+
+        const unitMap = {
+            ug_m3: 'μg/m³',
+            mg_m3: 'mg/m³',
+            ppm: 'ppm',
+            c: '°C',
+            f: '°F',
+            k: 'K',
+            pa: 'Pa',
+            kpa: 'kPa',
+            w: 'W',
+            kw: 'kW',
+            a: 'A',
+            v: 'V',
+            '%': '%',
+            l_min: 'L/min',
+            kg_s: 'kg/s',
+            m_s: 'm/s',
+            rpm: 'rpm',
+            usv_h: 'μSv/h',
+            uSv_h: 'μSv/h',
+            sv_h: 'Sv/h',
+            kwh: 'kWh'
+        };
+
+        return unitMap[normalizedUnit] || prettifyChemicals(unit);
+    }, [prettifyChemicals]);
+
+    const formatName = useCallback((name) => {
+        const withoutPrefix = String(name || '')
+            .replace(/^mars[\/_-]?telemetry[\/_-]?/i, '')
+            .replace(/^telemetry[\/_-]?/i, '');
+
+        const spaced = withoutPrefix
+            .replace(/[\/_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+
+        const titleCase = spaced
+            .split(' ')
+            .filter(Boolean)
+            .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+            .join(' ');
+
+        return prettifyChemicals(titleCase);
+    }, [prettifyChemicals]);
 
     const getActuatorIcon = (actuatorId) => {
         const normalizedId = String(actuatorId || '').toLowerCase();
@@ -219,9 +265,31 @@ function App() {
     }, [latest]);
 
     const sensorSuggestions = useMemo(() => {
-        const ids = Object.values(latest).map((data) => data.id).filter(Boolean);
-        const fromRules = rules.map((rule) => rule.sensor_id).filter(Boolean);
-        return Array.from(new Set([...ids, ...fromRules])).sort();
+        const fromLatest = Object.values(latest)
+            .filter((data) => data.id && data.metric)
+            .map((data) => ({ id: data.id, metric: data.metric, unit: data.unit || '' }));
+
+        const fromRules = rules
+            .filter((rule) => rule.sensor_id && rule.sensor_metric)
+            .map((rule) => ({ id: rule.sensor_id, metric: rule.sensor_metric, unit: '' }));
+
+        const uniqueMap = new Map();
+        [...fromLatest, ...fromRules].forEach((entry) => {
+            const key = `${entry.id}::${entry.metric}`;
+            const existing = uniqueMap.get(key);
+            if (!existing) {
+                uniqueMap.set(key, entry);
+            } else if (!existing.unit && entry.unit) {
+                uniqueMap.set(key, { ...existing, unit: entry.unit });
+            }
+        });
+
+        return Array.from(uniqueMap.values()).sort((a, b) => {
+            if (a.id === b.id) {
+                return a.metric.localeCompare(b.metric);
+            }
+            return a.id.localeCompare(b.id);
+        });
     }, [latest, rules]);
 
     const actuatorSuggestions = useMemo(() => {
@@ -229,6 +297,37 @@ function App() {
         const fromActuators = actuators.map((actuator) => actuator.id).filter(Boolean);
         return Array.from(new Set([...ids, ...fromActuators])).sort();
     }, [rules, actuators]);
+
+    const sensorOptions = useMemo(() => {
+        const base = [...sensorSuggestions];
+        if (ruleForm.sensor_id && ruleForm.sensor_metric) {
+            const exists = base.some((option) => (
+                option.id === ruleForm.sensor_id && option.metric === ruleForm.sensor_metric
+            ));
+            if (!exists) {
+                base.unshift({ id: ruleForm.sensor_id, metric: ruleForm.sensor_metric });
+            }
+        }
+        return base;
+    }, [sensorSuggestions, ruleForm.sensor_id, ruleForm.sensor_metric]);
+
+    const actuatorOptions = useMemo(() => {
+        const base = [...actuatorSuggestions];
+        if (ruleForm.actuator_id && !base.includes(ruleForm.actuator_id)) {
+            base.unshift(ruleForm.actuator_id);
+        }
+        return base;
+    }, [actuatorSuggestions, ruleForm.actuator_id]);
+
+    const unitBySensorMetric = useMemo(() => {
+        const unitMap = new Map();
+        Object.values(latest).forEach((data) => {
+            if (data?.id && data?.metric && data?.unit) {
+                unitMap.set(`${data.id}::${data.metric}`, data.unit);
+            }
+        });
+        return unitMap;
+    }, [latest]);
 
     const handleSetActuatorState = useCallback(async (actuatorId, state) => {
         try {
@@ -243,16 +342,39 @@ function App() {
         [rules]
     );
 
-    const activeRuleActuators = useMemo(() => new Set(
+    const activeRuleActuators = useMemo(() => {
+        const byActuator = new Map();
+
         rules
             .filter((rule) => rule.is_active)
-            .map((rule) => rule.actuator_id)
-            .filter(Boolean)
-    ), [rules]);
+            .forEach((rule) => {
+                const actuatorId = rule.actuator_id;
+                if (!actuatorId) {
+                    return;
+                }
+
+                const list = byActuator.get(actuatorId) || [];
+                list.push(rule);
+                byActuator.set(actuatorId, list);
+            });
+
+        return byActuator;
+    }, [rules]);
 
     const handleRuleFormChange = useCallback((event) => {
         const { name, value } = event.target;
         setRuleForm((previous) => ({ ...previous, [name]: value }));
+    }, []);
+
+    const handleSensorSelectionChange = useCallback((event) => {
+        const value = event.target.value;
+        const [sensorId, sensorMetric] = value.split('::');
+
+        setRuleForm((previous) => ({
+            ...previous,
+            sensor_id: sensorId || '',
+            sensor_metric: sensorMetric || ''
+        }));
     }, []);
 
     const resetRuleEditor = useCallback(() => {
@@ -264,10 +386,13 @@ function App() {
     const handleEditRule = useCallback((rule) => {
         setEditingRuleId(rule.id);
         setRuleForm({
+            name: rule.name || '',
             sensor_id: rule.sensor_id,
+            sensor_metric: rule.sensor_metric || '',
             condition: rule.condition,
             threshold: String(rule.threshold),
-            actuator_id: rule.actuator_id
+            actuator_id: rule.actuator_id,
+            action: (rule.action || 'ON').toUpperCase()
         });
         setRuleFormError('');
     }, []);
@@ -278,14 +403,17 @@ function App() {
 
         const thresholdValue = Number(ruleForm.threshold);
         const payload = {
+            name: ruleForm.name.trim(),
             sensor_id: ruleForm.sensor_id.trim(),
+            sensor_metric: ruleForm.sensor_metric.trim(),
             condition: ruleForm.condition,
             threshold: thresholdValue,
-            actuator_id: ruleForm.actuator_id.trim()
+            actuator_id: ruleForm.actuator_id.trim(),
+            action: ruleForm.action
         };
 
-        if (!payload.sensor_id || !payload.actuator_id || Number.isNaN(thresholdValue)) {
-            setRuleFormError('Please provide sensor, actuator, and a numeric threshold.');
+        if (!payload.name || !payload.sensor_id || !payload.sensor_metric || !payload.actuator_id || Number.isNaN(thresholdValue)) {
+            setRuleFormError('Please provide rule name, sensor metric, actuator, and a numeric threshold.');
             return;
         }
 
@@ -319,6 +447,26 @@ function App() {
             // Error state is surfaced by the hook.
         }
     }, [toggleRule]);
+
+    const handleToggleRuleAction = useCallback(() => {
+        setRuleForm((previous) => ({
+            ...previous,
+            action: previous.action === 'ON' ? 'OFF' : 'ON'
+        }));
+    }, []);
+
+    const handleDeleteAllRules = useCallback(async () => {
+        if (rules.length === 0) {
+            return;
+        }
+
+        try {
+            await deleteAllRules();
+            resetRuleEditor();
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [rules.length, deleteAllRules, resetRuleEditor]);
 
     const toggleGraph = useCallback((key) => {
         setExpandedGraphs(prev => ({
@@ -538,40 +686,48 @@ function App() {
                             ) : (
                                 <div className="actuators-grid">
                                     {actuators.map((actuator) => (
-                                        <div
-                                            key={actuator.id}
-                                            className={`actuator-card telemetry-card status-${actuator.isActive ? 'normal' : 'warning'}`}
-                                        >
-                                            <div className="actuator-card-header">
-                                                <span className="status-icon">
-                                                    {getActuatorIcon(actuator.id)}
-                                                </span>
-                                                <span className="card-source">Actuator</span>
-                                                <button
-                                                    className={`actuator-switch ${actuator.isActive ? 'is-on' : 'is-off'}`}
-                                                    type="button"
-                                                    onClick={() => handleSetActuatorState(actuator.id, actuator.isActive ? 'OFF' : 'ON')}
-                                                    disabled={actuatorsMutating}
-                                                    aria-label={actuator.isActive ? `Deactivate ${actuator.id}` : `Activate ${actuator.id}`}
-                                                    title={actuator.isActive ? 'Turn OFF' : 'Turn ON'}
+                                        (() => {
+                                            const matchingRule = (activeRuleActuators.get(actuator.id) || []).find((rule) => (
+                                                String(rule.action || 'ON').toUpperCase() === (actuator.isActive ? 'ON' : 'OFF')
+                                            ));
+
+                                            return (
+                                                <div
+                                                    key={actuator.id}
+                                                    className={`actuator-card telemetry-card status-${actuator.isActive ? 'normal' : 'warning'}`}
                                                 >
-                                                    <span className="actuator-switch-track">
-                                                        <span className="actuator-switch-thumb"></span>
-                                                    </span>
-                                                </button>
-                                            </div>
+                                                    <div className="actuator-card-header">
+                                                        <span className="status-icon">
+                                                            {getActuatorIcon(actuator.id)}
+                                                        </span>
+                                                        <span className="card-source">Actuator</span>
+                                                        <button
+                                                            className={`actuator-switch ${actuator.isActive ? 'is-on' : 'is-off'}`}
+                                                            type="button"
+                                                            onClick={() => handleSetActuatorState(actuator.id, actuator.isActive ? 'OFF' : 'ON')}
+                                                            disabled={actuatorsMutating}
+                                                            aria-label={actuator.isActive ? `Deactivate ${actuator.id}` : `Activate ${actuator.id}`}
+                                                            title={actuator.isActive ? 'Turn OFF' : 'Turn ON'}
+                                                        >
+                                                            <span className="actuator-switch-track">
+                                                                <span className="actuator-switch-thumb"></span>
+                                                            </span>
+                                                        </button>
+                                                    </div>
 
-                                            <div className="card-body actuator-card-body">
-                                                <h3 className="metric-name actuator-name">{formatName(actuator.id)}</h3>
-                                                <p className="metric-value actuator-value">{actuator.isActive ? 'ON' : 'OFF'}</p>
-                                            </div>
+                                                    <div className="card-body actuator-card-body">
+                                                        <h3 className="metric-name actuator-name">{formatName(actuator.id)}</h3>
+                                                        <p className="metric-value actuator-value">{actuator.isActive ? 'ON' : 'OFF'}</p>
+                                                    </div>
 
-                                            <div className="card-footer actuator-card-footer">
-                                                <span className={`status-badge ${actuator.isActive && activeRuleActuators.has(actuator.id) ? 'status-badge-critical' : 'status-badge-warning'}`}>
-                                                    {actuator.isActive && activeRuleActuators.has(actuator.id) ? 'Activated by Rule' : 'Manual/Idle'}
-                                                </span>
-                                            </div>
-                                        </div>
+                                                    <div className="card-footer actuator-card-footer">
+                                                        <span className={`status-badge ${matchingRule ? 'status-badge-critical' : 'status-badge-warning'}`}>
+                                                            {matchingRule ? `Rule: ${matchingRule.name || 'Unnamed Rule'}` : 'Manual/Idle'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()
                                     ))}
                                 </div>
                             )}
@@ -600,95 +756,117 @@ function App() {
                         <span>Total: {rules.length}</span>
                         <span>Active: {activeRulesCount}</span>
                         <button
-                            className="rule-action-btn rule-refresh-btn"
-                            onClick={fetchRules}
+                            className="rule-action-btn rule-refresh-btn rule-danger-btn"
+                            onClick={handleDeleteAllRules}
                             disabled={rulesLoading || rulesMutating}
                         >
-                            Refresh
+                            Delete All
                         </button>
                     </div>
 
                     <form className="rule-form" onSubmit={handleSubmitRule}>
                         <label className="rule-field">
-                            <span>Sensor Name</span>
+                            <span>Rule Name</span>
                             <input
                                 type="text"
-                                name="sensor_id"
-                                value={ruleForm.sensor_id}
+                                name="name"
+                                value={ruleForm.name}
                                 onChange={handleRuleFormChange}
-                                list="sensor-suggestions"
-                                placeholder="environment_sensor_01"
+                                placeholder="Cool Habitat If Hot"
                                 required
                             />
                         </label>
 
-                        <label className="rule-field">
-                            <span>Operator</span>
-                            <select
-                                name="condition"
-                                value={ruleForm.condition}
-                                onChange={handleRuleFormChange}
-                            >
-                                <option value=">">&gt;</option>
-                                <option value=">=">&gt;=</option>
-                                <option value="<">&lt;</option>
-                                <option value="<=">&lt;=</option>
-                                <option value="==">==</option>
-                            </select>
-                        </label>
+                        <div className="rule-row rule-row-three">
+                            <label className="rule-field">
+                                <span>Sensor Name</span>
+                                <select
+                                    name="sensor_id"
+                                    value={ruleForm.sensor_id && ruleForm.sensor_metric ? `${ruleForm.sensor_id}::${ruleForm.sensor_metric}` : ''}
+                                    onChange={handleSensorSelectionChange}
+                                    required
+                                >
+                                    <option value="" disabled>Select sensor</option>
+                                    {sensorOptions.map((sensor) => (
+                                        <option key={`${sensor.id}::${sensor.metric}`} value={`${sensor.id}::${sensor.metric}`}>
+                                            {formatName(sensor.id)} - {formatName(sensor.metric)}{sensor.unit ? ` (${formatUnit(sensor.unit)})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
 
-                        <label className="rule-field">
-                            <span>Value</span>
-                            <input
-                                type="number"
-                                step="any"
-                                name="threshold"
-                                value={ruleForm.threshold}
-                                onChange={handleRuleFormChange}
-                                placeholder="75"
-                                required
-                            />
-                        </label>
+                            <label className="rule-field rule-field-operator">
+                                <span>Operator</span>
+                                <select
+                                    name="condition"
+                                    value={ruleForm.condition}
+                                    onChange={handleRuleFormChange}
+                                >
+                                    <option value=">">&gt;</option>
+                                    <option value=">=">&gt;=</option>
+                                    <option value="<">&lt;</option>
+                                    <option value="<=">&lt;=</option>
+                                    <option value="==">==</option>
+                                </select>
+                            </label>
 
-                        <label className="rule-field">
-                            <span>Actuator Name</span>
-                            <input
-                                type="text"
-                                name="actuator_id"
-                                value={ruleForm.actuator_id}
-                                onChange={handleRuleFormChange}
-                                list="actuator-suggestions"
-                                placeholder="fan_controller_A"
-                                required
-                            />
-                        </label>
+                            <label className="rule-field rule-field-threshold">
+                                <span>Threshold</span>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    name="threshold"
+                                    value={ruleForm.threshold}
+                                    onChange={handleRuleFormChange}
+                                    placeholder="75"
+                                    required
+                                />
+                            </label>
+                        </div>
 
-                        <div className="rule-form-actions">
-                            <button className="rule-action-btn" type="submit" disabled={rulesMutating}>
-                                {editingRuleId ? 'Update Rule' : 'Add Rule'}
-                            </button>
-                            {editingRuleId && (
-                                <button className="rule-action-btn rule-secondary-btn" type="button" onClick={resetRuleEditor}>
-                                    Cancel
+                        <div className="rule-row rule-row-two">
+                            <label className="rule-field">
+                                <span>Actuator Name</span>
+                                <select
+                                    name="actuator_id"
+                                    value={ruleForm.actuator_id}
+                                    onChange={handleRuleFormChange}
+                                    required
+                                >
+                                    <option value="" disabled>Select actuator</option>
+                                    {actuatorOptions.map((actuatorId) => (
+                                        <option key={actuatorId} value={actuatorId}>{formatName(actuatorId)}</option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <div className="rule-field rule-field-action-toggle">
+                                <span>Action</span>
+                                <button
+                                    type="button"
+                                    className={`rule-form-toggle ${ruleForm.action === 'ON' ? 'is-on' : 'is-off'}`}
+                                    onClick={handleToggleRuleAction}
+                                    aria-label={`Set rule action to ${ruleForm.action === 'ON' ? 'OFF' : 'ON'}`}
+                                >
+                                    <span className={`rule-form-toggle-option ${ruleForm.action === 'ON' ? 'is-active' : ''}`}>
+                                        ON
+                                    </span>
+                                    <span className={`rule-form-toggle-option ${ruleForm.action === 'OFF' ? 'is-active' : ''}`}>
+                                        OFF
+                                    </span>
                                 </button>
-                            )}
+                            </div>
+                        </div>
+
+                        <div className="rule-form-actions rule-form-actions-full">
+                            <button className="rule-action-btn rule-submit-btn" type="submit" disabled={rulesMutating}>
+                                {editingRuleId ? 'Update Rule' : 'Create Rule'}
+                            </button>
                         </div>
 
                         {ruleFormError && <p className="rule-form-error">{ruleFormError}</p>}
                         {rulesError && !ruleFormError && <p className="rule-form-error">{rulesError.message}</p>}
                     </form>
-
-                    <datalist id="sensor-suggestions">
-                        {sensorSuggestions.map((sensorId) => (
-                            <option key={sensorId} value={sensorId} />
-                        ))}
-                    </datalist>
-
-                    <datalist id="actuator-suggestions">
-                        {actuatorSuggestions.map((actuatorId) => (
-                            <option key={actuatorId} value={actuatorId} />
-                        ))}
-                    </datalist>
 
                     <div className="rules-list">
                         {rulesLoading ? (
@@ -697,39 +875,53 @@ function App() {
                             <p className="rule-list-message">No rules configured yet.</p>
                         ) : (
                             rules.map((rule) => (
-                                <div key={rule.id} className={`rule-item ${rule.is_active ? 'rule-item-active' : 'rule-item-inactive'}`}>
-                                    <div className="rule-item-main">
-                                        <span className="rule-expression">{rule.sensor_id} {rule.condition} {rule.threshold}</span>
-                                        <span className="rule-target">{rule.actuator_id}</span>
-                                    </div>
-                                    <div className="rule-item-status">{rule.is_active ? 'ACTIVE' : 'INACTIVE'}</div>
-                                    <div className="rule-item-actions">
-                                        <button
-                                            className="rule-action-btn rule-secondary-btn"
-                                            type="button"
-                                            onClick={() => handleEditRule(rule)}
-                                            disabled={rulesMutating}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            className="rule-action-btn rule-secondary-btn"
-                                            type="button"
-                                            onClick={() => handleToggleRule(rule.id)}
-                                            disabled={rulesMutating}
-                                        >
-                                            {rule.is_active ? 'Disable' : 'Enable'}
-                                        </button>
-                                        <button
-                                            className="rule-action-btn rule-danger-btn"
-                                            type="button"
-                                            onClick={() => handleDeleteRule(rule.id)}
-                                            disabled={rulesMutating}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
+                                (() => {
+                                    const unit = unitBySensorMetric.get(`${rule.sensor_id}::${rule.sensor_metric}`);
+                                    const thresholdWithUnit = unit
+                                        ? `${rule.threshold} ${formatUnit(unit)}`
+                                        : `${rule.threshold}`;
+
+                                    return (
+                                        <div key={rule.id} className={`rule-item ${rule.is_active ? 'rule-item-active' : 'rule-item-inactive'}`}>
+                                            <div className="rule-item-main">
+                                                <span className="rule-target">{rule.name || 'Unnamed Rule'}</span>
+                                                <span className="rule-expression">
+                                                    {formatName(rule.sensor_id)} ({formatName(rule.sensor_metric || 'any')}) {rule.condition} {thresholdWithUnit}
+                                                </span>
+                                                <span className="rule-target">
+                                                    {formatName(rule.actuator_id)} {'->'} {(rule.action || 'ON').toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="rule-item-status">{rule.is_active ? 'ACTIVE' : 'INACTIVE'}</div>
+                                            <div className="rule-item-actions">
+                                                <button
+                                                    className="rule-action-btn rule-secondary-btn"
+                                                    type="button"
+                                                    onClick={() => handleEditRule(rule)}
+                                                    disabled={rulesMutating}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="rule-action-btn rule-secondary-btn"
+                                                    type="button"
+                                                    onClick={() => handleToggleRule(rule.id)}
+                                                    disabled={rulesMutating}
+                                                >
+                                                    {rule.is_active ? 'Disable' : 'Enable'}
+                                                </button>
+                                                <button
+                                                    className="rule-action-btn rule-danger-btn"
+                                                    type="button"
+                                                    onClick={() => handleDeleteRule(rule.id)}
+                                                    disabled={rulesMutating}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()
                             ))
                         )}
                     </div>
