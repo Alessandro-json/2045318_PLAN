@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useNormalizedData } from './hooks/NormalizedDataHook'
 import { useRules } from './hooks/RulesHook'
 import { useActuators } from './hooks/ActuatorsHook';
+import { useHealth } from './hooks/HealthHook';
 
 const DEFAULT_RULE_FORM = {
     name: '',
@@ -28,6 +29,7 @@ function App() {
         disableAllRules,
         toggleRule
     } = useRules();
+    const { isHealthy } = useHealth();
     const [expandedGraphs, setExpandedGraphs] = useState({});
     const [showSettings, setShowSettings] = useState(false);
     const [activeTab, setActiveTab] = useState('sensors');
@@ -631,9 +633,9 @@ function App() {
                     {/* Row 3: Subtitle + Status */}
                     <div className="header-row-3">
                         <div className="subtitle">Real-time Habitat Environmental Control & Life Support. Please don't die.</div>
-                        <div className="system-status">
-                            <div className="status-indicator status-warning"></div>
-                            <span className="status-text">SYSTEM DEGRADED</span>
+                        <div className={`system-status ${isHealthy ? 'system-status-operational' : 'system-status-degraded'}`}>
+                            <div className={`status-indicator ${isHealthy ? 'status-standby' : 'status-warning'}`}></div>
+                            <span className="status-text">{isHealthy ? 'SYSTEM OPERATIONAL' : 'SYSTEM DEGRADED'}</span>
                         </div>
                     </div>
                 </header>
@@ -773,8 +775,8 @@ function App() {
                 <div className="rule-manager-header">
                     <h2 className="rule-manager-title">AUTOMATION RULES</h2>
                     <div className="rule-status">
-                        <span className={`status-indicator ${rulesError ? 'status-warning' : 'status-standby'}`}></span>
-                        <span>{rulesError ? 'DEGRADED' : 'ONLINE'}</span>
+                        <span className={`status-indicator ${rulesError ? 'status-warning' : 'status-normal'}`}></span>
+                        <span>{rulesError ? 'ERROR' : 'ONLINE'}</span>
                     </div>
                 </div>
                 <div className="rule-manager-content">

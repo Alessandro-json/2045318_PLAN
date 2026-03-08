@@ -319,8 +319,25 @@ button:focus-visible {
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     background: rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--color-warning);
+    border: 1px solid var(--color-border);
     border-radius: 2px;
+    transition: border-color 0.3s ease;
+}
+
+.system-status-operational {
+    border-color: var(--color-normal);
+}
+
+.system-status-operational .status-text {
+    color: var(--color-normal);
+}
+
+.system-status-degraded {
+    border-color: var(--color-warning);
+}
+
+.system-status-degraded .status-text {
+    color: var(--color-warning);
 }
 
 .status-indicator {
@@ -330,18 +347,23 @@ button:focus-visible {
     position: relative;
 }
 
+.status-indicator.status-standby {
+    background: var(--color-normal);
+    box-shadow: 0 0 12px var(--color-normal);
+}
+
 .status-indicator.status-warning {
     background: var(--color-warning);
     box-shadow: 0 0 12px var(--color-warning);
     animation: pulse 2s ease-in-out infinite;
 }
 
-.status-indicator::before {
+.status-indicator.status-warning::before {
     content: '';
     position: absolute;
     inset: -4px;
     border-radius: 50%;
-    border: 2px solid currentColor;
+    border: 2px solid var(--color-warning);
     opacity: 0;
     animation: ripple 2s ease-out infinite;
 }
@@ -360,11 +382,11 @@ button:focus-visible {
 
 .status-text {
     font-size: 0.75rem;
-    color: var(--color-warning);
     font-weight: 700;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     font-family: monospace;
+    transition: color 0.3s ease;
 }
 
 .settings-panel {
@@ -1212,10 +1234,9 @@ button:focus-visible {
 }
 
 .status-standby {
-    background: var(--color-text-warning);
-    border-color: var(--color-text-warning);
-    box-shadow: 0 0 10px var(--color-text-warning);
-    animation: pulse 2s ease-in-out infinite;
+    background: var(--color-normal);
+    border-color: var(--color-normal);
+    box-shadow: 0 0 10px var(--color-normal);
 }
 
 .rule-manager-content {
