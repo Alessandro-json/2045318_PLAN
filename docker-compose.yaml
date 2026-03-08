@@ -127,7 +127,7 @@ services:
     image: rabbitmq:3.13-management
     container_name: rabbitmq_server
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity" ]
       interval: 5s
       timeout: 5s
       retries: 5

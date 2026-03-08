@@ -1,7 +1,6 @@
 import os
 import asyncio
 
-from models.models import NormalizedData
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from aio_pika import connect_robust, ExchangeType
 from websockets.exceptions import ConnectionClosedOK
@@ -51,20 +50,31 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 async def _rabbitmq_consumer():
-    connection = await connect_robust(f'amqp://guest:guest@{RABBIT_HOST}/')
+    while True:
+        try:
+            connection = await connect_robust(
+                f'amqp://guest:guest@{RABBIT_HOST}/'
+            )
 
-    try:
-        async with connection:
-            channel = await connection.channel()
-            await channel.declare_exchange(EXCHANGE_NAME, ExchangeType.TOPIC)
+            async with connection:
+                channel = await connection.channel()
+                await channel.declare_exchange(
+                    EXCHANGE_NAME, ExchangeType.TOPIC
+                )
 
-            queue = await channel.declare_queue(exclusive=True)
-            await queue.bind(exchange=EXCHANGE_NAME, routing_key='data.#')
+                queue = await channel.declare_queue(exclusive=True)
+                await queue.bind(exchange=EXCHANGE_NAME, routing_key='data.#')
 
-            async with queue.iterator() as queue_iter:
-                async for message in queue_iter:
-                    async with message.process():
-                        payload = message.body.decode()
-                        await manager.broadcast(payload)
-    except Exception as e:
-        print(f'error: rabbitmq consumer encountered an error: {e}')
+                async with queue.iterator() as queue_iter:
+                    async for message in queue_iter:
+                        async with message.process():
+                            payload = message.body.decode()
+                            await manager.broadcast(payload)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            print(
+                f'warning: rabbitmq consumer connection failed: {e}; '
+                'retrying in 3s'
+            )
+            await asyncio.sleep(3)
