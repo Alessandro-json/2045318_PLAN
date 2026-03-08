@@ -29,7 +29,6 @@ export function useNormalizedData() {
         updateRateRef.current = updateRate;
         // If there's a pending timer and rate changed, clear it and reschedule
         if (throttleTimerRef.current) {
-            console.log('Update rate changed to', updateRate, 'ms - rescheduling');
             clearTimeout(throttleTimerRef.current);
             throttleTimerRef.current = setTimeout(() => {
                 flushUpdates();
@@ -44,11 +43,9 @@ export function useNormalizedData() {
     }, [history]);
 
     useEffect(() => {
-        console.log('WebSocket connecting...');
         const socket = new WebSocket(`ws://${window.location.host}/ws/dashboard`);
 
         socket.onopen = () => {
-            console.log('WebSocket connected successfully');
         };
 
         socket.onerror = (error) => {
@@ -84,9 +81,7 @@ export function useNormalizedData() {
 
                 // Throttle UI updates
                 if (!throttleTimerRef.current) {
-                    console.log('Scheduling update in', updateRateRef.current, 'ms');
                     throttleTimerRef.current = setTimeout(() => {
-                        console.log('Flushing updates to state');
                         flushUpdates();
                         throttleTimerRef.current = null;
                     }, updateRateRef.current);
@@ -97,7 +92,6 @@ export function useNormalizedData() {
         };
 
         socket.onclose = () => {
-            console.log('WebSocket connection closed');
             // Clear any pending updates
             if (throttleTimerRef.current) {
                 clearTimeout(throttleTimerRef.current);

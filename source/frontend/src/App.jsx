@@ -51,7 +51,83 @@ function App() {
         // Determine icon based on metric type
         let iconSvg = '';
 
-        if (lowerSource.includes('power') || lowerSource.includes('solar') || lowerMetric.includes('power') || lowerMetric.includes('voltage') || lowerMetric.includes('current')) {
+        if (lowerSource.includes('airlock') || lowerMetric.includes('airlock')) {
+            // Futuristic airlock door icon.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <path d="M9 3v18" />
+                    <path d="M15 3v18" />
+                    <circle cx="12" cy="12" r="1.2" />
+                </svg>
+            );
+        } else if (lowerSource.includes('radiation') || lowerMetric.includes('radiation')) {
+            // Standard trefoil-style radiation symbol.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <path d="M12 12 L12 4 A8 8 0 0 1 18.9 8 Z" fill="currentColor" stroke="none" />
+                    <path d="M12 12 L18.9 16 A8 8 0 0 1 12 20 Z" fill="currentColor" stroke="none" />
+                    <path d="M12 12 L5.1 16 A8 8 0 0 1 5.1 8 Z" fill="currentColor" stroke="none" />
+                    <circle cx="12" cy="12" r="9" />
+                </svg>
+            );
+        } else if ((lowerSource.includes('thermal_loop_primary') || (lowerSource.includes('thermal') && lowerSource.includes('primary'))) && lowerMetric.includes('flow')) {
+            // Pipe half-filled with coolant.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="8" width="18" height="8" rx="4" />
+                    <path d="M3 12h18" />
+                    <path d="M7 12v4" />
+                    <path d="M11 12v4" />
+                    <path d="M15 12v4" />
+                </svg>
+            );
+        } else if (lowerSource.includes('hydroponic') || lowerMetric.includes('ph')) {
+            // Droplet with pH% marker.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M12 2.5c2.5 3.2 6 6.7 6 10.4A6 6 0 1 1 6 12.9c0-3.7 3.5-7.2 6-10.4z" />
+                    <text x="12" y="14" textAnchor="middle" fontSize="5" fill="currentColor" stroke="none">pH%</text>
+                </svg>
+            );
+        } else if (lowerSource.includes('water_tank') || lowerMetric.includes('liters') || (lowerMetric === 'pct' && lowerSource.includes('water'))) {
+            // Half-filled glass for tank level.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M7 4h10l-1.2 15a2 2 0 0 1-2 1.8h-3.6a2 2 0 0 1-2-1.8z" />
+                    <path d="M8.3 13h7.4" />
+                    <path d="M8.8 16h6.4" />
+                </svg>
+            );
+        } else if (
+            lowerSource.includes('life-support')
+            || lowerSource.includes('habitat-alpha')
+        ) {
+            // Heart icon for life-support systems.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20s-6.8-4.2-9-7.4C1.4 10.5 2 7.4 4.3 6a4.8 4.8 0 0 1 5.7.6L12 8.3l2-1.7a4.8 4.8 0 0 1 5.7-.6c2.3 1.4 2.9 4.5 1.3 6.6C18.8 15.8 12 20 12 20z" />
+                </svg>
+            );
+        } else if (lowerSource.includes('co2') || lowerMetric.includes('co2') || lowerMetric.includes('co2e')) {
+            // Cloud icon with CO2 label.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M7.5 18h9a4.5 4.5 0 0 0 .7-8.9 5.5 5.5 0 0 0-10.7 1.7A3.6 3.6 0 0 0 7.5 18z" />
+                    <text x="12" y="15" textAnchor="middle" fontSize="5" fill="currentColor" stroke="none">CO2</text>
+                </svg>
+            );
+        } else if (lowerSource.includes('air_quality') || lowerMetric.includes('pm') || lowerMetric.includes('voc')) {
+            // Wind icon with three flow lines.
+            iconSvg = (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 8h11c1.6 0 2.5-.9 2.5-2 0-1.2-1-2-2.2-2-1.1 0-2 .6-2.3 1.6" />
+                    <path d="M3 12h15c1.8 0 2.8.9 2.8 2.1 0 1.3-1 2.2-2.3 2.2-1.2 0-2.1-.7-2.4-1.7" />
+                    <path d="M3 16h8.5c1.5 0 2.3.8 2.3 1.8 0 1.1-.9 1.9-2.1 1.9" />
+                </svg>
+            );
+        } else if (lowerSource.includes('power') || lowerSource.includes('solar') || lowerMetric.includes('power') || lowerMetric.includes('voltage') || lowerMetric.includes('current')) {
             iconSvg = (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
@@ -73,14 +149,14 @@ function App() {
                     <path d="M12 12h6" />
                 </svg>
             );
-        } else if (lowerMetric.includes('radiation') || lowerMetric.includes('particle')) {
+        } else if (lowerMetric.includes('particle')) {
             iconSvg = (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
                     <path d="M12 1v6m0 6v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M1 12h6m6 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" />
                 </svg>
             );
-        } else if (lowerMetric.includes('co2') || lowerMetric.includes('o2') || lowerMetric.includes('air') || lowerSource.includes('life_support') || lowerSource.includes('environment')) {
+        } else if (lowerMetric.includes('co2') || lowerMetric.includes('o2') || lowerMetric.includes('air') || lowerSource.includes('environment')) {
             iconSvg = (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 8c0 3.5 2.5 6 5 8s4.5 4 4.5 4S15 18.5 17.5 16S23 11.5 23 8" />
@@ -138,6 +214,8 @@ function App() {
 
     const prettifyChemicals = useCallback((value) => (
         String(value || '')
+            .replace(/\bco2e\b/gi, 'CO₂E')
+            .replace(/\bpm25\b/gi, 'PM2.5')
             .replace(/\bco2\b/gi, 'CO₂')
             .replace(/\bo2\b/gi, 'O₂')
     ), []);

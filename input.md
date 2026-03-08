@@ -22,3 +22,6 @@
 
 
 ## Unified internal event schema
+
+
+## Rule model
