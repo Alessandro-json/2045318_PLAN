@@ -145,6 +145,34 @@ export function useRules() {
         }
     }, []);
 
+    const enableAllRules = useCallback(async () => {
+        setError(null);
+        setIsMutating(true);
+        try {
+            await request('/enable-all', { method: 'PATCH' });
+            setRules((previous) => previous.map((rule) => ({ ...rule, is_active: true })));
+        } catch (err) {
+            setError(err);
+            throw err;
+        } finally {
+            setIsMutating(false);
+        }
+    }, []);
+
+    const disableAllRules = useCallback(async () => {
+        setError(null);
+        setIsMutating(true);
+        try {
+            await request('/disable-all', { method: 'PATCH' });
+            setRules((previous) => previous.map((rule) => ({ ...rule, is_active: false })));
+        } catch (err) {
+            setError(err);
+            throw err;
+        } finally {
+            setIsMutating(false);
+        }
+    }, []);
+
     const toggleRule = useCallback(async (ruleId) => {
         setError(null);
         setIsMutating(true);
@@ -174,6 +202,8 @@ export function useRules() {
         updateRule,
         deleteRule,
         deleteAllRules,
+        enableAllRules,
+        disableAllRules,
         toggleRule
     };
 }

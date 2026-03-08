@@ -178,6 +178,24 @@ async def delete_all_rules(db: Session = Depends(get_db)):
     return {"message": "All rules deleted"}
 
 
+@app.patch("/api/rules/enable-all")
+async def enable_all_rules(db: Session = Depends(get_db)):
+    db.query(RulesTable).update({"is_active": True})
+    db.commit()
+
+    await refresh_rule_cache()
+    return {"message": "All rules enabled"}
+
+
+@app.patch("/api/rules/disable-all")
+async def disable_all_rules(db: Session = Depends(get_db)):
+    db.query(RulesTable).update({"is_active": False})
+    db.commit()
+
+    await refresh_rule_cache()
+    return {"message": "All rules disabled"}
+
+
 @app.delete("/api/rules/{rule_id}")
 async def delete_rule(rule_id: str, db: Session = Depends(get_db)):
     db \

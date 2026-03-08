@@ -13,4 +13,5 @@
 11. As a user, I want to be able to control the polling rate of the data from the sensors.
 12. As a user, I want to be able to quickly see the trend of sensed data.
 13. As a user, I want to be able to remove all rules at once.
-14. As a user, I want to be able to see for how long an actuator has been activated.
+14. As a user, I want to be able to enable/disable all rules at once.
+15. As a user, I want to be able to see the status of each sensor.

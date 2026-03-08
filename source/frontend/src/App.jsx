@@ -24,6 +24,8 @@ function App() {
         updateRule,
         deleteRule,
         deleteAllRules,
+        enableAllRules,
+        disableAllRules,
         toggleRule
     } = useRules();
     const [expandedGraphs, setExpandedGraphs] = useState({});
@@ -468,6 +470,30 @@ function App() {
         }
     }, [rules.length, deleteAllRules, resetRuleEditor]);
 
+    const handleEnableAllRules = useCallback(async () => {
+        if (rules.length === 0) {
+            return;
+        }
+
+        try {
+            await enableAllRules();
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [rules.length, enableAllRules]);
+
+    const handleDisableAllRules = useCallback(async () => {
+        if (rules.length === 0) {
+            return;
+        }
+
+        try {
+            await disableAllRules();
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [rules.length, disableAllRules]);
+
     const toggleGraph = useCallback((key) => {
         setExpandedGraphs(prev => ({
             ...prev,
@@ -755,6 +781,20 @@ function App() {
                     <div className="rule-manager-summary">
                         <span>Total: {rules.length}</span>
                         <span>Active: {activeRulesCount}</span>
+                        <button
+                            className="rule-action-btn rule-refresh-btn"
+                            onClick={handleEnableAllRules}
+                            disabled={rulesLoading || rulesMutating}
+                        >
+                            Enable All
+                        </button>
+                        <button
+                            className="rule-action-btn rule-refresh-btn"
+                            onClick={handleDisableAllRules}
+                            disabled={rulesLoading || rulesMutating}
+                        >
+                            Disable All
+                        </button>
                         <button
                             className="rule-action-btn rule-refresh-btn rule-danger-btn"
                             onClick={handleDeleteAllRules}
