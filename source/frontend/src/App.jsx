@@ -218,13 +218,14 @@ function App() {
             .replace(/\bpm25\b/gi, 'PM2.5')
             .replace(/\bco2\b/gi, 'CO₂')
             .replace(/\bo2\b/gi, 'O₂')
+            .replace(/\busv\s*h\b/gi, 'μSv/h')
+            .replace(/\bsv\s*h\b/gi, 'Sv/h')
     ), []);
 
     const formatUnit = useCallback((unit) => {
         const normalizedUnit = String(unit || '')
             .trim()
-            .replace(/\//g, '_')
-            .replace(/\s+/g, '_')
+            .replace(/[\/\.\-\s]+/g, '_')
             .toLowerCase();
 
         const unitMap = {
@@ -246,7 +247,6 @@ function App() {
             m_s: 'm/s',
             rpm: 'rpm',
             usv_h: 'μSv/h',
-            uSv_h: 'μSv/h',
             sv_h: 'Sv/h',
             kwh: 'kWh'
         };
@@ -635,6 +635,9 @@ function App() {
         const formattedUnit = formatUnit(data.unit);
         const formattedSource = formatName(data.source);
         const formattedMetric = formatName(data.metric);
+        const metricUnitMatch = formattedMetric.match(/^(.*?)(\s+(?:μSv\/h|mSv\/h|Sv\/h))$/);
+        const metricLabel = metricUnitMatch ? metricUnitMatch[1] : formattedMetric;
+        const metricUnitSuffix = metricUnitMatch ? metricUnitMatch[2] : '';
 
         return (
             <div key={key} className={`telemetry-card status-${data.status} ${isGraphExpanded ? 'expanded' : ''}`}>
@@ -643,7 +646,10 @@ function App() {
                     <span className="card-source">{formattedSource}</span>
                 </div>
                 <div className="card-body">
-                    <h3 className="metric-name">{formattedMetric}</h3>
+                    <h3 className="metric-name">
+                        {metricLabel}
+                        {metricUnitSuffix && <span style={{ textTransform: 'none' }}>{metricUnitSuffix}</span>}
+                    </h3>
                     <div className="value-row">
                         <p className="metric-value">
                             {data.value} <span className="metric-unit">{formattedUnit}</span>
