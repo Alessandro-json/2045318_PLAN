@@ -923,41 +923,50 @@ function App() {
 
                                     return (
                                         <div key={rule.id} className={`rule-item ${rule.is_active ? 'rule-item-active' : 'rule-item-inactive'}`}>
-                                            <div className="rule-item-main">
-                                                <span className="rule-target">{rule.name || 'Unnamed Rule'}</span>
-                                                <span className="rule-expression">
-                                                    {formatName(rule.sensor_id)} ({formatName(rule.sensor_metric || 'any')}) {rule.condition} {thresholdWithUnit}
-                                                </span>
-                                                <span className="rule-target">
-                                                    {formatName(rule.actuator_id)} {'->'} {(rule.action || 'ON').toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <div className="rule-item-status">{rule.is_active ? 'ACTIVE' : 'INACTIVE'}</div>
-                                            <div className="rule-item-actions">
+                                            <div className="rule-item-header">
                                                 <button
-                                                    className="rule-action-btn rule-secondary-btn"
-                                                    type="button"
-                                                    onClick={() => handleEditRule(rule)}
-                                                    disabled={rulesMutating}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="rule-action-btn rule-secondary-btn"
+                                                    className={`actuator-switch rule-toggle ${rule.is_active ? 'is-on' : 'is-off'}`}
                                                     type="button"
                                                     onClick={() => handleToggleRule(rule.id)}
                                                     disabled={rulesMutating}
+                                                    aria-label={rule.is_active ? `Disable ${rule.name}` : `Enable ${rule.name}`}
+                                                    title={rule.is_active ? 'Disable Rule' : 'Enable Rule'}
                                                 >
-                                                    {rule.is_active ? 'Disable' : 'Enable'}
+                                                    <span className="actuator-switch-track">
+                                                        <span className="actuator-switch-thumb"></span>
+                                                    </span>
                                                 </button>
-                                                <button
-                                                    className="rule-action-btn rule-danger-btn"
-                                                    type="button"
-                                                    onClick={() => handleDeleteRule(rule.id)}
-                                                    disabled={rulesMutating}
-                                                >
-                                                    Delete
-                                                </button>
+                                                <div className="rule-item-actions">
+                                                    <button
+                                                        className="rule-icon-btn"
+                                                        type="button"
+                                                        onClick={() => handleEditRule(rule)}
+                                                        disabled={rulesMutating}
+                                                        aria-label="Edit rule"
+                                                        title="Edit rule"
+                                                    >
+                                                        ✎
+                                                    </button>
+                                                    <button
+                                                        className="rule-icon-btn rule-delete-btn"
+                                                        type="button"
+                                                        onClick={() => handleDeleteRule(rule.id)}
+                                                        disabled={rulesMutating}
+                                                        aria-label="Delete rule"
+                                                        title="Delete rule"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="rule-item-main">
+                                                <div className="rule-name">{rule.name || 'Unnamed Rule'}</div>
+                                                <div className="rule-condition">
+                                                    Condition: {formatName(rule.sensor_id)} ({formatName(rule.sensor_metric || 'any')}) {rule.condition} {thresholdWithUnit}
+                                                </div>
+                                                <div className="rule-action">
+                                                    Action: {formatName(rule.actuator_id)} → {(rule.action || 'ON').toUpperCase()}
+                                                </div>
                                             </div>
                                         </div>
                                     );
