@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const ACTUATORS_API_BASE = (import.meta.env.VITE_ACTUATORS_API_URL || '/api/actuators').replace(/\/$/, '');
 const ACTUATOR_ACTIVATE_STATE = (import.meta.env.VITE_ACTUATOR_ACTIVATE_STATE || 'ON').toUpperCase();
+const ACTUATORS_REFRESH_MS = Number(import.meta.env.VITE_ACTUATORS_REFRESH_MS || 1000);
 
 function normalizeActuator(item, fallbackId) {
     if (item == null) {
@@ -76,10 +77,20 @@ export function useActuators() {
     const [isLoading, setIsLoading] = useState(true);
     const [isMutating, setIsMutating] = useState(false);
     const [error, setError] = useState(null);
+    const isFetchingRef = useRef(false);
 
-    const fetchActuators = useCallback(async () => {
-        setError(null);
-        setIsLoading(true);
+    const fetchActuators = useCallback(async ({ silent = false } = {}) => {
+        if (isFetchingRef.current) {
+            return;
+        }
+
+        isFetchingRef.current = true;
+
+        if (!silent) {
+            setError(null);
+            setIsLoading(true);
+        }
+
         try {
             const response = await fetch(ACTUATORS_API_BASE);
             if (!response.ok) {
@@ -91,12 +102,29 @@ export function useActuators() {
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Failed to fetch actuators'));
         } finally {
-            setIsLoading(false);
+            isFetchingRef.current = false;
+            if (!silent) {
+                setIsLoading(false);
+            }
         }
     }, []);
 
     useEffect(() => {
         fetchActuators();
+    }, [fetchActuators]);
+
+    useEffect(() => {
+        if (!Number.isFinite(ACTUATORS_REFRESH_MS) || ACTUATORS_REFRESH_MS <= 0) {
+            return undefined;
+        }
+
+        const intervalId = setInterval(() => {
+            fetchActuators({ silent: true });
+        }, ACTUATORS_REFRESH_MS);
+
+        return () => {
+            clearInterval(intervalId);
+        };
     }, [fetchActuators]);
 
     const activateActuator = useCallback(async (actuatorId, state = ACTUATOR_ACTIVATE_STATE) => {
@@ -116,7 +144,13 @@ export function useActuators() {
                 throw new Error(`Failed to activate actuator ${actuatorId} (${response.status})`);
             }
 
-            await fetchActuators();
+            setActuators((previous) => previous.map((actuator) => (
+                actuator.id === actuatorId
+                    ? { ...actuator, state, isActive: state === 'ON' }
+                    : actuator
+            )));
+
+            await fetchActuators({ silent: true });
         } catch (err) {
             const typedError = err instanceof Error ? err : new Error('Failed to activate actuator');
             setError(typedError);

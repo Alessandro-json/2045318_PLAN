@@ -4,6 +4,7 @@ import asyncio
 import json
 import operator
 import httpx
+import os
 
 from database import engine, SessionLocal, Base
 from fastapi import FastAPI, Depends, HTTPException
@@ -30,7 +31,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-cached_active_rules = []
+cached_rules = []
+DEFAULT_TRIGGER_STATE = os.getenv("RULE_TRIGGER_STATE", "ON").upper()
 
 OPS = {
     '>': operator.gt,
@@ -156,7 +158,7 @@ async def refresh_rule_cache():
     db = SessionLocal()
     try:
         cached_rules = db.query(RulesTable) \
-            .filter(RulesTable.is_active is True) \
+            .filter(RulesTable.is_active.is_(True)) \
             .all()
         # print(f"Cache refreshed: {len(cached_rules)} active rules loaded.")
     finally:
@@ -182,21 +184,40 @@ async def toggle_rule(rule_id: str, db: Session = Depends(get_db)):
 
 async def evaluate_and_trigger(data: dict, active_rules: list):
     sensor_id = data.get("id")
-    value = data.get("value")
+    raw_value = data.get("value")
+
+    if sensor_id is None or raw_value is None:
+        return
+
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        return
 
     for rule in active_rules:
         if rule.sensor_id == sensor_id:
             op_func = OPS.get(rule.condition)
             if op_func and op_func(value, rule.threshold):
-                await trigger_actuator(rule.actuator_id, rule.action)
-                # print(f"Rule Matched: {sensor_id} {rule.condition} {rule.threshold}")
+                await trigger_actuator(rule.actuator_id)
+                # print(
+                #     f"Rule Matched: {sensor_id} "
+                #     f"{rule.condition} {rule.threshold}"
+                # )
 
 
-async def trigger_actuator(actuator_id: str, action: str):
+async def trigger_actuator(
+    actuator_id: str,
+    state: str = DEFAULT_TRIGGER_STATE
+):
     url = f"http://oci-container:8080/api/actuators/{actuator_id}"
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(url, json={"command": action})
+            response = await client.post(url, json={"state": state})
+            if response.status_code >= 400:
+                print(
+                    f"Failed to trigger actuator {actuator_id}: "
+                    f"{response.status_code} {response.text}"
+                )
     except Exception as e:
         print(f"Failed to trigger actuator: {e}")
 
