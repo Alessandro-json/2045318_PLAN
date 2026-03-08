@@ -625,7 +625,7 @@ function App() {
                     {/* Row 2: Main Title */}
                     <div className="header-row-2">
                         <h1 className="main-title">
-                            <span className="title-line-1">SPACEY</span>
+                            <span className="title-line-1">PLAN(ET)</span>
                             <span className="title-line-2">MONITORING SYSTEM</span>
                         </h1>
                     </div>
