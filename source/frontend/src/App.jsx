@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNormalizedData } from './hooks/NormalizedDataHook'
 import { useRules } from './hooks/RulesHook'
+import { useActuators } from './hooks/ActuatorsHook';
 
 const DEFAULT_RULE_FORM = {
     sensor_id: '',
@@ -18,6 +19,14 @@ function App() {
     const [ruleForm, setRuleForm] = useState(DEFAULT_RULE_FORM);
     const [editingRuleId, setEditingRuleId] = useState(null);
     const [ruleFormError, setRuleFormError] = useState('');
+    const {
+        actuators,
+        isLoading: actuatorsLoading,
+        isMutating: actuatorsMutating,
+        error: actuatorsError,
+        fetchActuators,
+        activateActuator
+    } = useActuators();
 
     const getStatusIcon = (source, metric, status) => {
         const lowerSource = source.toLowerCase();
@@ -175,8 +184,17 @@ function App() {
 
     const actuatorSuggestions = useMemo(() => {
         const ids = rules.map((rule) => rule.actuator_id).filter(Boolean);
-        return Array.from(new Set(ids)).sort();
-    }, [rules]);
+        const fromActuators = actuators.map((actuator) => actuator.id).filter(Boolean);
+        return Array.from(new Set([...ids, ...fromActuators])).sort();
+    }, [rules, actuators]);
+
+    const handleSetActuatorState = useCallback(async (actuatorId, state) => {
+        try {
+            await activateActuator(actuatorId, state);
+        } catch {
+            // Error state is surfaced by the hook.
+        }
+    }, [activateActuator]);
 
     const activeRulesCount = useMemo(
         () => rules.filter((rule) => rule.is_active).length,
@@ -421,7 +439,7 @@ function App() {
                     >
                         <span className="tab-icon">🔧</span>
                         <span className="tab-label">ACTUATORS</span>
-                        <span className="tab-count">{actuatorSuggestions.length}</span>
+                        <span className="tab-count">{actuators.length}</span>
                     </button>
                 </div>
 
@@ -452,24 +470,52 @@ function App() {
                     )}
 
                     {activeTab === 'actuators' && (
-                        <div className="actuators-placeholder">
-                            <div className="placeholder-content">
-                                {actuatorSuggestions.length > 0 ? (
-                                    <>
-                                        <p className="placeholder-text">REGISTERED ACTUATORS</p>
-                                        <div className="actuator-list">
-                                            {actuatorSuggestions.map((actuatorId) => (
-                                                <span key={actuatorId} className="actuator-chip">{actuatorId}</span>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="placeholder-text">⚠ NO ACTUATORS IN RULES</p>
-                                        <p className="placeholder-subtext">Add a rule to register actuator suggestions</p>
-                                    </>
-                                )}
+                        <div className="actuators-section">
+                            <div className="actuators-toolbar">
+                                <button
+                                    className="rule-action-btn rule-refresh-btn"
+                                    type="button"
+                                    onClick={fetchActuators}
+                                    disabled={actuatorsLoading || actuatorsMutating}
+                                >
+                                    Refresh
+                                </button>
+                                {actuatorsError && <span className="actuator-error-text">{actuatorsError.message}</span>}
                             </div>
+
+                            {actuatorsLoading ? (
+                                <div className="loading-state">
+                                    <p>Loading actuators...</p>
+                                </div>
+                            ) : actuators.length === 0 ? (
+                                <div className="actuators-placeholder">
+                                    <div className="placeholder-content">
+                                        <p className="placeholder-text">NO ACTUATORS AVAILABLE</p>
+                                        <p className="placeholder-subtext">The OCI simulator did not return actuator data.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="actuators-grid">
+                                    {actuators.map((actuator) => (
+                                        <div key={actuator.id} className="actuator-card">
+                                            <div className="actuator-card-header">
+                                                <span className="actuator-card-id">{actuator.id}</span>
+                                                <span className={`status-badge ${actuator.isActive ? 'status-badge-normal' : 'status-badge-warning'}`}>
+                                                    {actuator.state}
+                                                </span>
+                                            </div>
+                                            <button
+                                                className="rule-action-btn"
+                                                type="button"
+                                                onClick={() => handleSetActuatorState(actuator.id, actuator.isActive ? 'OFF' : 'ON')}
+                                                disabled={actuatorsMutating}
+                                            >
+                                                {actuator.isActive ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
