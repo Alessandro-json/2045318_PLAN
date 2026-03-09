@@ -24,7 +24,7 @@ in order to be able to provide the user always the most accurate data.
 4. As a user, I want to specify rules based on values reported by the sensor and take action through the actuators, so that i can automate my work.
 5. As a user, I want to delete previously specified rules.
 6. As a user, I want to be able to temporarily toggle a rule, so that I can perform maintenance.
-7. As a user, I want the system identify which rule activated an actuator, so that everything is transparent.
+7. As a user, I want the system to identify which rule activated an actuator, so that everything is transparent.
 8. As a user, I want to give names to rules, so that I can easily identify rules.
 9. As a user, I want to be able to edit a rule.
 10. As a user, I want to see at a glance the overall health of the system.
@@ -151,7 +151,7 @@ The frontend is the container responsible for serving the web dashboard through 
 4. As a user, I want to specify rules based on values reported by the sensor and take action through the actuators, so that i can automate my work.
 5. As a user, I want to delete previously specified rules.
 6. As a user, I want to be able to temporarily toggle a rule, so that I can perform maintenance.
-7. As a user, I want the system identify which rule activated an actuator, so that everything is transparent.
+7. As a user, I want the system to identify which rule activated an actuator, so that everything is transparent.
 8. As a user, I want to give names to rules, so that I can easily identify rules.
 9. As a user, I want to be able to edit a rule.
 10. As a user, I want to see at a glance the overall health of the system.
@@ -184,7 +184,7 @@ It also evaluates incoming normalized events and triggers actuator actions when 
 4. As a user, I want to specify rules based on values reported by the sensor and take action through the actuators, so that i can automate my work.
 5. As a user, I want to delete previously specified rules.
 6. As a user, I want to be able to temporarily toggle a rule, so that I can perform maintenance.
-7. As a user, I want the system identify which rule activated an actuator, so that everything is transparent.
+7. As a user, I want the system to identify which rule activated an actuator, so that everything is transparent.
 8. As a user, I want to give names to rules, so that I can easily identify rules.
 9. As a user, I want to be able to edit a rule.
 10. As a user, I want to see at a glance the overall health of the system.
@@ -204,7 +204,7 @@ This container connects to the rabbitmq service to receive normalized events, an
 - *Type*: backend
 - *Description*: provides rule management APIs and evaluates normalized events with respect to stored rules.
 - *Ports*: 9000
-- *Technological Specification*: the service exposes REST endpoints for rule management and subscribes to normalized events from RabbitMQ. When a new event is received, the rule engine evaluates the defined conditions and, if a rule is satisfied, performs an HTTP request to the appropriate actuator endpoint. Finally, it uses SQLite as database engine for persistent storage of rules. 
+- *Technological Specification*: the service exposes REST endpoints for rule management and subscribes to normalized events from RabbitMQ. When a new event is received, the rule engine evaluates the defined conditions and, if a rule is satisfied, performs an HTTP request to the appropriate actuator endpoint. Finally, it uses SQLite as database engine for persistent storage of rules.
 - *Service architecture*: The service is structured into two separate modules: the persistence layer is implemented in `database.py` while rule evaluation logic is implemented in `manager.py`.
 - *Endpoints*: the service exposes REST endpoints under the base path `/api/rules`. It supports rule retrieval (`GET /api/rules`), rule creation (`POST /api/rules`), rule removal (`DELETE /api/rules`), rule update (`PUT /api/rules/{rule_id}`) and partial rule modification (`PATCH /api/rules/{rule_id}`), as well as single rule deletion (`DELETE /api/rules/{rule_id}`). It also provides endpoints for enabling (`PATCH /api/rules/enable-all`), disabling (`PATCH /api/rules/disable-all`) and toggling (`PATCH /api/rules/{rule_id}/toggle`) rules.
 

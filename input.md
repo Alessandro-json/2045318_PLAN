@@ -26,7 +26,7 @@ in order to be able to provide the user always the most accurate data.
 4. As a user, I want to specify rules based on values reported by the sensor and take action through the actuators, so that i can automate my work.
 5. As a user, I want to delete previously specified rules.
 6. As a user, I want to be able to temporarily toggle a rule, so that I can perform maintenance.
-7. As a user, I want the system identify which rule activated an actuator, so that everything is transparent.
+7. As a user, I want the system to identify which rule activated an actuator, so that everything is transparent.
 8. As a user, I want to give names to rules, so that I can easily identify rules.
 9. As a user, I want to be able to edit a rule.
 10. As a user, I want to see at a glance the overall health of the system.
