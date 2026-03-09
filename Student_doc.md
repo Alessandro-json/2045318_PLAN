@@ -40,7 +40,7 @@ in order to be able to provide the user always the most accurate data.
 
 ### Description
 This container is responsible for polling the sensors data from the REST API
-provided by `mars-iot-simulator` container and dispatching it to the unormalized
+provided by `mars-iot-simulator` container and dispatching it to the unnormalized
 data exchange within RabbitMQ.
 
 ### User stories
@@ -64,7 +64,7 @@ This container connects to the `mars-iot-simulator` service and the RabbitMQ ser
 ## telemetry-poller
 
 ### Description
-This container is responsible for polling telemetry data from the WebSocket endpoints provided by `mars-iot-simulator` container and dispatching it to the unormalized data exchange within RabbitMQ.
+This container is responsible for polling telemetry data from the WebSocket endpoints provided by `mars-iot-simulator` container and dispatching it to the unnormalized data exchange within RabbitMQ.
 
 ### User stories
 
@@ -80,7 +80,7 @@ This container connects to the `mars-iot-simulator` service and the RabbitMQ ser
 
 #### telemetry
 - *Type*: backend
-- *Description*: listens for websocket events and pushes the incoming data into the RabbitMQ unormalized data exchange.
+- *Description*: listens for websocket events and pushes the incoming data into the RabbitMQ unnormalized data exchange.
 - *Technological Specification*: the microservice uses the `threading` library to spawn a new thread, which, through the `websocket` module, creates a connection per telemetry topic and listens to message events, which get structed
 in a type-safe way using `pydantic` models, finally pushed into RabbitMQ exchange using `pika`.
 - *Service architecture*: the service uses a single file to fulfill its requirements, apart from `pydantic` models, which are stored in another file, as they are shared between microservices.
@@ -88,7 +88,7 @@ in a type-safe way using `pydantic` models, finally pushed into RabbitMQ exchang
 ## normalizer
 
 ### Description
-This container is responsible for consuming data from the unormalized data
+This container is responsible for consuming data from the unnormalized data
 exchange in the RabbitMQ service, normalizing them following the unified internal
 event schema and finally pushing them in the normalize data exchange, once again
 via RabbitMQ protocol.
@@ -107,7 +107,7 @@ This container connects to the `mars-iot-simulator` service and the RabbitMQ ser
 
 #### normalizer
 - *Type*: backend
-- *Description*: consumes data from the unormalized data exchange in RabbitMQ, then after parsing the data it normalizes it in the unified internal event schema, finally pushing it into the normalized data exchange.
+- *Description*: consumes data from the unnormalized data exchange in RabbitMQ, then after parsing the data it normalizes it in the unified internal event schema, finally pushing it into the normalized data exchange.
 - *Technological Specification*: the microservice uses `pika` to manage the connection to RabbitMQ and both consuming as well as pushing data to exchanges; incoming data is structured in a type-safe way using `pydantic` models, normalized into another `pydantic` model and then pushed.
 - *Service architecture*: the service uses a single file to fulfill its requirements, apart from `pydantic` models, which are stored in another file, as they are shared between microservices.
 
@@ -227,7 +227,7 @@ This container is used by `sensors-poller`, `telemetry-poller`, `normalizer`, `b
 - *Description*: provides message-based communication between microservices using AMQP, enabling decoupled data exchange across the system.
 - *Ports*: 5672 (AMQP protocol for microservice communication), 15672 (management web interface)
 - *Technological Specification*: the service is implemented using the official `rabbitmq:3.13-management` Docker image. It supports the AMQP protocol (port 5672), which is used by the microservices to publish and receive messages, and a web-based management interface (port 15672) that allows monitoring of exchanges, queues and message flow within the system.
-- *Service architecture*: the service acts as the central event bus of the system allowing microservices to publish and receive messages through two exchanges: `unormalized_data` and `normalized_data`. In particular, poller services publish raw sensor data to the `unormalized_data` exchange, the normalizer processes and republishes validated events to the `normalized_data` exchange, and the backend and rules services receive normalized events for visualization and rule evaluation.
+- *Service architecture*: the service acts as the central event bus of the system allowing microservices to publish and receive messages through two exchanges: `unnormalized_data` and `normalized_data`. In particular, poller services publish raw sensor data to the `unnormalized_data` exchange, the normalizer processes and republishes validated events to the `normalized_data` exchange, and the backend and rules services receive normalized events for visualization and rule evaluation.
 
 
 
