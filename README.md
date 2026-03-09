@@ -2,6 +2,14 @@
 
 # PLAN(ET)
 
+<table style="width: 100%;">
+  <tr>
+    <td><img width="1851" height="981" alt="Sensors Tab" src="https://github.com/user-attachments/assets/0f80364c-6e63-41e0-bc94-61d02199956f" /></td>
+    <td><img width="1858" height="984" alt="Telemetry Tab" src="https://github.com/user-attachments/assets/20756ff7-39af-4cf6-adce-e333d2b59da1" /></td>
+    <td><img width="1856" height="974" alt="Actuators Tab" src="https://github.com/user-attachments/assets/e329e5f3-4a97-4c9e-917c-03e098b4338f" /></td>
+  </tr>
+</table>
+
 PLAN(ET) is the official dashboard for the latest SpaceY Mars exploration mission.
 It displays data gathered by sensors onboard the spaceship, with the ultimate goal
 of easing the workload of the explorer in regards to monitoring the healthiness
