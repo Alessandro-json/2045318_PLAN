@@ -1,3 +1,5 @@
+![Docker Compose Build](https://github.com/Alessandro-json/2045318_PLAN/actions/workflows/compose.yaml/badge.svg)
+
 # PLAN(ET)
 
 PLAN(ET) is the official dashboard for the latest SpaceY Mars exploration mission.
